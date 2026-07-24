@@ -88,6 +88,8 @@ echo "=============================================="
 for url in \
   "http://127.0.0.1:5050/app" \
   "http://127.0.0.1:5050/json" \
+  "http://127.0.0.1:5050/regional-preview" \
+  "http://127.0.0.1:5050/json/regional-preview" \
   "http://127.0.0.1:5050/reg" \
   "http://127.0.0.1:5050/api/node/poll?node_id=node_01" \
   "http://127.0.0.1:5050/api/esp32/poll?node_id=node_01"
