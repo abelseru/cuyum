@@ -1,0 +1,143 @@
+{
+  "generated_at": "2026-07-23T13:57:01.208015+00:00",
+  "mode": "auto",
+  "warning_rule": "early_warning cells require at least 10 estimated useful seconds; otherwise they are excluded or kept as local/control.",
+  "cells": {
+    "cell_00": {
+      "role": "local_control",
+      "status": "reference_only",
+      "label": "Mendoza ciudad",
+      "center": {
+        "lat": -32.8895,
+        "lon": -68.8458
+      },
+      "direction": null,
+      "effective_warning_seconds": 0,
+      "primary": [],
+      "reserve_or_context": []
+    },
+    "auto_cell_01": {
+      "role": "early_warning",
+      "status": "strong_cell",
+      "label": "Auto SO / La Punta",
+      "center": {
+        "lat": -33.68378,
+        "lon": -70.59322
+      },
+      "direction": "SO",
+      "effective_warning_seconds": 47.8,
+      "primary": [
+        {
+          "code": "C1.BO04.BHZ",
+          "site": "La Punta",
+          "lat": -33.98884,
+          "lon": -70.60902,
+          "packets": 27,
+          "latency_seconds": 1.16,
+          "source_role": "live_inventory:auto_cell_01_inventory.json:sensor",
+          "live_status": "active",
+          "can_trigger": true,
+          "can_confirm": true,
+          "score": 0.5,
+          "distance_from_home_km": 204.2,
+          "bearing_deg": 232.8,
+          "direction": "SO",
+          "effective_warning_seconds": 53.3,
+          "station_key": "C1.BO04"
+        },
+        {
+          "code": "C1.MT18.BHZ",
+          "site": "Casona",
+          "lat": -33.4631,
+          "lon": -70.66439,
+          "packets": 53,
+          "latency_seconds": 3.08,
+          "source_role": "live_inventory:auto_cell_01_inventory.json:sensor",
+          "live_status": "active",
+          "can_trigger": true,
+          "can_confirm": true,
+          "score": 0.5,
+          "distance_from_home_km": 180.9,
+          "bearing_deg": 248.9,
+          "direction": "O",
+          "effective_warning_seconds": 46.7,
+          "station_key": "C1.MT18"
+        },
+        {
+          "code": "C1.MT15.BHZ",
+          "site": "Las Vizcachas",
+          "lat": -33.599397,
+          "lon": -70.506261,
+          "packets": 35,
+          "latency_seconds": 2.53,
+          "source_role": "live_inventory:auto_cell_01_inventory.json:sensor",
+          "live_status": "active",
+          "can_trigger": true,
+          "can_confirm": true,
+          "score": 0.5,
+          "distance_from_home_km": 173.4,
+          "bearing_deg": 242.5,
+          "direction": "SO",
+          "effective_warning_seconds": 44.5,
+          "station_key": "C1.MT15"
+        }
+      ],
+      "reserve_or_context": [
+        {
+          "code": "C1.MT03.BHZ",
+          "site": "Universidad Adolfo Ibanez",
+          "lat": -33.4936,
+          "lon": -70.5102,
+          "packets": 30,
+          "latency_seconds": 1.39,
+          "source_role": "live_inventory:auto_cell_01_inventory.json:reserve",
+          "live_status": "active",
+          "can_trigger": true,
+          "can_confirm": true,
+          "score": 0.5,
+          "distance_from_home_km": 168.8,
+          "bearing_deg": 246.1,
+          "direction": "SO",
+          "effective_warning_seconds": 43.2,
+          "station_key": "C1.MT03"
+        },
+        {
+          "code": "C1.MT14.BHZ",
+          "site": "Calan",
+          "lat": -33.39573,
+          "lon": -70.536232,
+          "packets": 37,
+          "latency_seconds": 1.19,
+          "source_role": "live_inventory:auto_cell_01_inventory.json:reserve",
+          "live_status": "active",
+          "can_trigger": true,
+          "can_confirm": true,
+          "score": 0.5,
+          "distance_from_home_km": 167.1,
+          "bearing_deg": 249.9,
+          "direction": "O",
+          "effective_warning_seconds": 42.8,
+          "station_key": "C1.MT14"
+        },
+        {
+          "code": "C1.MT16.BHZ",
+          "site": "CCHEN",
+          "lat": -33.42848,
+          "lon": -70.523351,
+          "packets": 29,
+          "latency_seconds": 2.24,
+          "source_role": "live_inventory:auto_cell_01_inventory.json:reserve",
+          "live_status": "active",
+          "can_trigger": true,
+          "can_confirm": true,
+          "score": 0.5,
+          "distance_from_home_km": 167.3,
+          "bearing_deg": 248.5,
+          "direction": "O",
+          "effective_warning_seconds": 42.8,
+          "station_key": "C1.MT16"
+        }
+      ]
+    }
+  }
+}

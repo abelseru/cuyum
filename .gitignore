@@ -1,0 +1,81 @@
+# Python
+venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+
+# Runtime generado por Cuyum
+runtime/*.json
+runtime/*.jsonl
+runtime_logs/*.txt
+runtime_logs/root_old_logs/
+
+# Backups y cuarentena local
+snapshots_v1_2/
+snapshots_live_final_v1/
+quarantine_v1_2/
+backups_v1_2_semantica/
+backups_v1_2b_english_core/
+
+# Reportes y auditorías locales
+audits/*.txt
+reports_v1_2/
+
+# Paquetes y comprimidos
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+
+# Logs sueltos por seguridad
+logs_*.txt
+*.log
+
+# Configuración local sensible o de equipo
+config/*.local.json
+esp32/config.h
+
+# Cuyum runtime / generated files
+runtime/
+runtime_logs/
+snapshots_v1_2/
+local_archive/
+
+# Cuyum generated previews
+config/*.preview.json
+config/disabled*/
+config/backups*/
+config/*backup*
+*.backup_before_*
+*.broken_*
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment
+venv/
+.env
+
+# Extra Cuyum local backups
+*.backup_before_*.json
+*.backup_before_*.sh
+*.backup_before_*.py
+*.backup_before_*.css
+*.backup_before_*.js
+*backup_before*
+*broken*
+
+# Generated regional reports / previews outside runtime
+auto_cells_report.json
+auto_cells_report.txt
+REPORTE_*.md
+
+# Cuyum generated root runtime state
+cuyum_runtime_cells.json
+
+# Local audit outputs
+audits/
+
+# Generic local backup files
+*.bak

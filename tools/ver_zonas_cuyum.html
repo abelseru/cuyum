@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cuyum - Visor de zonas</title>
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background: #111; color: #eee; }
+    header { padding: 16px 20px; background: #1e1e1e; border-bottom: 1px solid #333; }
+    h1 { margin: 0 0 6px; font-size: 22px; }
+    p { margin: 6px 0; color: #ccc; }
+    main { display: grid; grid-template-columns: 1fr 360px; gap: 0; min-height: calc(100vh - 92px); }
+    #mapWrap { padding: 16px; }
+    canvas { width: 100%; height: calc(100vh - 130px); background: #0b1420; border: 1px solid #333; border-radius: 12px; display: block; }
+    aside { border-left: 1px solid #333; padding: 16px; background: #171717; overflow: auto; max-height: calc(100vh - 92px); }
+    input, button { font: inherit; }
+    input[type=file] { width: 100%; margin: 10px 0 16px; }
+    .zone { border: 1px solid #333; border-radius: 10px; padding: 10px; margin-bottom: 10px; background: #202020; }
+    .zone h3 { margin: 0 0 6px; font-size: 16px; }
+    .zone small { color: #aaa; }
+    .point { margin: 6px 0; padding-left: 8px; border-left: 3px solid #666; }
+    code { background: #2a2a2a; padding: 1px 4px; border-radius: 4px; }
+    .warn { background: #30240d; border: 1px solid #715711; padding: 10px; border-radius: 8px; color: #ffd98a; }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } aside { border-left: 0; border-top: 1px solid #333; max-height: none; } canvas { height: 65vh; } }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Cuyum - visor simple de zonas</h1>
+  <p>Cargá <code>cuyum_zones_setup.json</code> para ver los centros elegidos. Es un mapa esquemático sin internet ni librerías externas.</p>
+</header>
+<main>
+  <section id="mapWrap">
+    <canvas id="map" width="1200" height="800"></canvas>
+  </section>
+  <aside>
+    <div class="warn">Este visor es para depuración visual. No reemplaza un SIG ni valida peligrosidad sísmica. Sirve para ver si las zonas están razonablemente separadas.</div>
+    <input type="file" id="file" accept="application/json,.json">
+    <div id="info"></div>
+  </aside>
+</main>
+<script>
+const canvas = document.getElementById('map');
+const ctx = canvas.getContext('2d');
+const info = document.getElementById('info');
+const colors = ['#ffcc66', '#66d9ef', '#a6e22e', '#fd971f', '#ae81ff', '#f92672'];
+
+function allPoints(cfg) {
+  const pts = [];
+  if (cfg.project_center) pts.push({...cfg.project_center, zone: 'project_center', priority: 0});
+  for (const z of cfg.zones || []) {
+    for (const c of z.centers || []) pts.push({...c, zone: z.id, role: z.role});
+  }
+  return pts.filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lon));
+}
+
+function bounds(points) {
+  let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+  for (const p of points) {
+    minLat = Math.min(minLat, p.lat); maxLat = Math.max(maxLat, p.lat);
+    minLon = Math.min(minLon, p.lon); maxLon = Math.max(maxLon, p.lon);
+  }
+  const padLat = Math.max(0.4, (maxLat - minLat) * 0.18);
+  const padLon = Math.max(0.4, (maxLon - minLon) * 0.18);
+  return {minLat:minLat-padLat, maxLat:maxLat+padLat, minLon:minLon-padLon, maxLon:maxLon+padLon};
+}
+
+function project(p, b) {
+  const margin = 60;
+  const x = margin + (p.lon - b.minLon) / (b.maxLon - b.minLon) * (canvas.width - margin*2);
+  const y = margin + (b.maxLat - p.lat) / (b.maxLat - b.minLat) * (canvas.height - margin*2);
+  return {x, y};
+}
+
+function drawGrid(b) {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = '#0b1420'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle = '#26384a'; ctx.lineWidth = 1;
+  ctx.fillStyle = '#789'; ctx.font = '13px system-ui';
+  for (let i=0;i<=8;i++) {
+    const x = 60 + i*(canvas.width-120)/8;
+    ctx.beginPath(); ctx.moveTo(x,40); ctx.lineTo(x,canvas.height-40); ctx.stroke();
+    const lon = b.minLon + i*(b.maxLon-b.minLon)/8;
+    ctx.fillText(lon.toFixed(2), x-22, canvas.height-18);
+  }
+  for (let i=0;i<=6;i++) {
+    const y = 60 + i*(canvas.height-120)/6;
+    ctx.beginPath(); ctx.moveTo(40,y); ctx.lineTo(canvas.width-40,y); ctx.stroke();
+    const lat = b.maxLat - i*(b.maxLat-b.minLat)/6;
+    ctx.fillText(lat.toFixed(2), 8, y+4);
+  }
+  ctx.fillStyle = '#9ab';
+  ctx.fillText('N', canvas.width/2, 25);
+  ctx.fillText('S', canvas.width/2, canvas.height-8);
+  ctx.fillText('O', 20, canvas.height/2);
+  ctx.fillText('E', canvas.width-25, canvas.height/2);
+}
+
+function draw(cfg) {
+  const pts = allPoints(cfg);
+  if (!pts.length) return;
+  const b = bounds(pts);
+  drawGrid(b);
+
+  const zoneColor = new Map();
+  (cfg.zones || []).forEach((z,i) => zoneColor.set(z.id, colors[i % colors.length]));
+
+  // Líneas entre centros de cada zona
+  for (const z of cfg.zones || []) {
+    const centers = (z.centers || []).filter(c => Number.isFinite(c.lat) && Number.isFinite(c.lon));
+    if (!centers.length) continue;
+    ctx.strokeStyle = zoneColor.get(z.id) || '#fff';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8,8]);
+    ctx.beginPath();
+    centers.forEach((c, i) => { const q = project(c,b); if (i===0) ctx.moveTo(q.x,q.y); else ctx.lineTo(q.x,q.y); });
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  for (const z of cfg.zones || []) {
+    const col = zoneColor.get(z.id) || '#fff';
+    for (const c of z.centers || []) {
+      if (!Number.isFinite(c.lat) || !Number.isFinite(c.lon)) continue;
+      const q = project(c,b);
+      const r = c.priority === 1 ? 11 : (c.priority === 2 ? 9 : 7);
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(q.x,q.y,r,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#111'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 12px system-ui';
+      ctx.fillText(String(c.priority), q.x-4, q.y+4);
+      ctx.fillStyle = '#eee'; ctx.font = '14px system-ui';
+      ctx.fillText(`${z.id} P${c.priority} ${c.label || ''}`, q.x+14, q.y-10);
+    }
+  }
+
+  if (cfg.project_center) {
+    const q = project(cfg.project_center,b);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(q.x-14,q.y); ctx.lineTo(q.x+14,q.y); ctx.moveTo(q.x,q.y-14); ctx.lineTo(q.x,q.y+14); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 15px system-ui'; ctx.fillText('Centro del proyecto', q.x+18, q.y+18);
+  }
+}
+
+function renderInfo(cfg) {
+  let html = `<h2>${cfg.schema || 'zonas Cuyum'}</h2>`;
+  html += `<p>Objetivo: <code>${cfg.target_sensors_per_zone}</code> sensores | mínimo: <code>${cfg.minimum_sensors_per_zone}</code></p>`;
+  for (const [i,z] of (cfg.zones || []).entries()) {
+    html += `<div class="zone"><h3 style="color:${colors[i % colors.length]}">${z.id} · ${z.role}</h3><small>${z.description || ''}</small>`;
+    for (const c of z.centers || []) {
+      html += `<div class="point"><b>P${c.priority}</b> ${c.label}<br><code>${c.lat}, ${c.lon}</code></div>`;
+    }
+    html += `</div>`;
+  }
+  info.innerHTML = html;
+}
+
+function loadConfig(cfg) { draw(cfg); renderInfo(cfg); }
+
+document.getElementById('file').addEventListener('change', async (ev) => {
+  const f = ev.target.files[0];
+  if (!f) return;
+  const text = await f.text();
+  try { loadConfig(JSON.parse(text)); }
+  catch (e) { alert('No se pudo leer JSON: ' + e.message); }
+});
+
+// Config mínima de ejemplo para que la página no abra vacía.
+loadConfig({
+  schema: 'ejemplo: cargá cuyum_zones_setup.json',
+  project_center: {label:'Centro', lat:-32.8895, lon:-68.8458},
+  target_sensors_per_zone: 6,
+  minimum_sensors_per_zone: 5,
+  zones: []
+});
+</script>
+</body>
+</html>

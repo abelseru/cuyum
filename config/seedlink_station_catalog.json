@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "description": "Catálogo de estaciones SeedLink conocidas por Cuyum. Este archivo contiene sensores posibles; el bootstrap selecciona cuáles usar según el centro geográfico actual.",
+  "updated_at": "2026-07-22",
+  "sensors": {
+    "C1.MT08.BHZ": {
+      "network": "C1",
+      "station": "MT08",
+      "channel": "BHZ",
+      "name": "Bocatoma Colorado",
+      "lat": -33.4052,
+      "lon": -70.1334,
+      "server": "rtserve.earthscope.org",
+      "can_confirm": true,
+      "can_trigger": true
+    },
+    "C1.MT04.BHZ": {
+      "network": "C1",
+      "station": "MT04",
+      "channel": "BHZ",
+      "name": "Olivares",
+      "lat": -33.273,
+      "lon": -70.29,
+      "server": "rtserve.earthscope.org",
+      "can_confirm": true,
+      "can_trigger": true
+    },
+    "C1.VA03.BHZ": {
+      "network": "C1",
+      "station": "VA03",
+      "channel": "BHZ",
+      "name": "San Esteban",
+      "lat": -32.804,
+      "lon": -70.58,
+      "server": "rtserve.earthscope.org",
+      "can_confirm": true,
+      "can_trigger": true
+    },
+    "C1.MT13.BHZ": {
+      "network": "C1",
+      "station": "MT13",
+      "channel": "BHZ",
+      "name": "San Alfonso",
+      "lat": -33.7437,
+      "lon": -70.2861,
+      "server": "rtserve.earthscope.org",
+      "can_confirm": true,
+      "can_trigger": true
+    },
+    "RI.LPCA.EHZ": {
+      "network": "RI",
+      "station": "LPCA",
+      "channel": "EHZ",
+      "name": "La Paz / INPRES",
+      "lat": -33.466,
+      "lon": -67.55,
+      "server": "rtserve.earthscope.org",
+      "can_confirm": false,
+      "can_trigger": false,
+      "role": "regional_observer"
+    },
+    "WA.ZON.HHZ": {
+      "network": "WA",
+      "station": "ZON",
+      "channel": "HHZ",
+      "name": "San Juan / IGSV",
+      "lat": -31.5375,
+      "lon": -68.5364,
+      "server": "rtserve.earthscope.org",
+      "can_confirm": false,
+      "can_trigger": false,
+      "role": "regional_observer"
+    }
+  }
+}

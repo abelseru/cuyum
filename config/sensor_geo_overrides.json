@@ -1,0 +1,48 @@
+{
+  "description": "Coordenadas para visualización pública de sensores heredados que no traen lat/lon en el estado vivo. No se usan para decidir alertas ni scoring.",
+  "updated_at": "2026-07-15",
+  "sensors": {
+    "C1.MT04.BHZ": {
+      "lat": -33.273,
+      "lon": -70.29,
+      "source": "visualizacion_publica_aproximada",
+      "name": "Olivares",
+      "localidad": "Olivares"
+    },
+    "C1.MT08.BHZ": {
+      "lat": -33.4052,
+      "lon": -70.1334,
+      "source": "visualizacion_publica_aproximada",
+      "name": "Bocatoma Colorado",
+      "localidad": "Bocatoma Colorado"
+    },
+    "C1.MT13.BHZ": {
+      "lat": -33.7437,
+      "lon": -70.2861,
+      "source": "visualizacion_publica_aproximada",
+      "name": "San Alfonso",
+      "localidad": "San Alfonso"
+    },
+    "C1.VA03.BHZ": {
+      "lat": -32.804,
+      "lon": -70.58,
+      "source": "visualizacion_publica_aproximada",
+      "name": "San Esteban",
+      "localidad": "San Esteban"
+    },
+    "WA.ZON.HHZ": {
+      "lat": -31.5375,
+      "lon": -68.5364,
+      "source": "visualizacion_publica_aproximada",
+      "name": "San Juan / IGSV",
+      "localidad": "San Juan / IGSV"
+    },
+    "RI.LPCA.EHZ": {
+      "lat": -33.466,
+      "lon": -67.55,
+      "source": "visualizacion_publica_aproximada",
+      "name": "La Paz / INPRES",
+      "localidad": "La Paz / INPRES"
+    }
+  }
+}

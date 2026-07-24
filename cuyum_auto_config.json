@@ -1,0 +1,29 @@
+{
+  "project": {
+    "home": {
+      "label": "Mendoza ciudad",
+      "lat": -32.8895,
+      "lon": -68.8458
+    }
+  },
+  "cell_generation": {
+    "mode": "auto",
+    "target_total_cells_including_local": 5,
+    "sensors_per_cell": 3,
+    "min_sensors_per_cell": 2,
+    "cluster_radius_km": 70,
+    "min_cell_distance_km": 120,
+    "reserve_sensors_per_cell": 3,
+    "min_effective_warning_seconds": 10,
+    "isolated_sensor_policy": "observer_only",
+    "dense_cluster_limit": 1,
+    "dense_cluster_exclusion_km": 90,
+    "local_sensors_per_cell": 5,
+    "max_sensor_distance_from_home_km": 800
+  },
+  "propagation_model": {
+    "assumed_s_wave_km_s": 3.5,
+    "decision_latency_seconds": 3,
+    "safety_margin_seconds": 2
+  }
+}
