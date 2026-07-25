@@ -109,9 +109,5 @@ echo "Open:"
 echo "http://127.0.0.1:5050/app"
 echo "http://192.168.1.37:5050/app"
 echo
-echo "Regional preview:"
-echo "http://127.0.0.1:5050/regional-preview"
-echo "http://192.168.1.37:5050/regional-preview"
-echo
 echo "To stop Cuyum:"
 echo "./stop_cuyum_v1_2.sh"
