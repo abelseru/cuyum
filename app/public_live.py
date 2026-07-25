@@ -283,7 +283,25 @@ def _sensor_locations_from_runtime():
                         "cell_id": auto_inv.get("cell_id", "auto_cell_01"),
                         "direction": item.get("direction") or auto_inv.get("direction"),
                         "provider": item.get("provider") or auto_inv.get("server_name"),
+                        "source": "auto_cell_inventory",
                     }
+
+    candidate = leer_json("config/candidate_inventory.json") or {}
+    for item in candidate.get("sensores", []) or []:
+        key = _sensor_key(item.get("network", item.get("red")), item.get("station", item.get("estacion")), item.get("channel", item.get("canal")))
+        lat = _as_float(item.get("lat"), None)
+        lon = _as_float(item.get("lon"), None)
+        if key and lat is not None and lon is not None:
+            locations.setdefault(key, {
+                "lat": lat,
+                "lon": lon,
+                "name": item.get("name") or item.get("nombre") or item.get("site") or key,
+                "locality": item.get("locality") or item.get("localidad") or item.get("name") or item.get("nombre") or item.get("site") or key,
+                "cell_id": "candidate_inventory",
+                "direction": item.get("direction"),
+                "provider": item.get("provider") or item.get("source_provider"),
+                "source": "candidate_inventory",
+            })
     return locations
 
 
@@ -294,10 +312,13 @@ def _live_sensors_from_states():
     zona = (local_state.get("zonas", {}) or {}).get("cordillera_cuyo_adaptativa", {})
     for key, s in (_pick_dict(zona, "sensors", "sensores") or {}).items():
         sensor_id = s.get("sensor_id", s.get("clave")) or key
+        role = str(s.get("role", s.get("rol", ""))).strip().lower()
+        is_observer = role == "observador_regional"
+
         sensors[sensor_id] = {
             "sensor_id": sensor_id,
-            "cell_id": "cell_00",
-            "cell_label": "Local",
+            "cell_id": "regional_observers" if is_observer else "cell_00",
+            "cell_label": "Observadores" if is_observer else "Local",
             "name": s.get("name", s.get("nombre")) or sensor_id,
             "locality": s.get("locality", s.get("localidad")) or s.get("name", s.get("nombre")) or sensor_id,
             "localidad": s.get("locality", s.get("localidad")) or s.get("name", s.get("nombre")) or sensor_id,
@@ -399,23 +420,52 @@ def _regional_observer_count(sensors):
     return count, calibrated
 
 
+def _class_from_count(n):
+    n = _as_int(n, 0)
+    if n >= 6:
+        return "alta"
+    if n >= 4:
+        return "buena"
+    if n >= 2:
+        return "mínima"
+    if n == 1:
+        return "regular"
+    return "en espera"
+
+
 def _public_display_cells(display_cells, sensors=None):
     out = []
+    sensors = sensors or []
+    local_sensors = [
+        s for s in sensors
+        if s.get("cell_id") == "cell_00"
+        and str(s.get("state") or "").lower() in ("active", "activo", "vivo")
+    ]
+    local_calibrated = [
+        s for s in local_sensors
+        if bool(s.get("calibrated", s.get("calibrado", False)))
+    ]
+
     for c in display_cells or []:
         short = c.get("short_label") or c.get("direction_label") or c.get("cell_id") or "Zona"
         if short != "Local":
             short = _direction_name(short)
+
+        is_local = c.get("cell_id") == "cell_00"
+        sensors_active = len(local_sensors) if is_local else _as_int(c.get("sensors_active", 0))
+        sensors_calibrated = len(local_calibrated) if is_local else _as_int(c.get("sensors_calibrated", 0))
+
         out.append({
             "cell_id": c.get("cell_id"),
-            "label": "Local" if c.get("cell_id") == "cell_00" else (c.get("label") or short),
+            "label": "Local" if is_local else (c.get("label") or short),
             "role": c.get("role"),
             "class": c.get("class"),
-            "class_label": _human_class(c.get("class_label")),
+            "class_label": _class_from_count(sensors_active) if is_local else _human_class(c.get("class_label")),
             "state": c.get("state"),
             "state_label": _human_state(c.get("state_label")),
             "fresh": bool(c.get("fresh", False)),
-            "sensors_active": _as_int(c.get("sensors_active", 0)),
-            "sensors_calibrated": _as_int(c.get("sensors_calibrated", 0)),
+            "sensors_active": sensors_active,
+            "sensors_calibrated": sensors_calibrated,
             "warning_seconds": _as_float(c.get("warning_seconds"), None),
             "direction_label": c.get("direction_label"),
         })
@@ -515,6 +565,23 @@ def build_public_live():
         if cid in label_lookup:
             sensor["cell_label"] = label_lookup[cid]
     cells_map = _public_cells_for_map(fused.get("cells", {}))
+
+    local_active_count = sum(
+        1 for s in sensors
+        if s.get("cell_id") == "cell_00"
+        and str(s.get("state") or "").lower() in ("active", "activo", "vivo")
+    )
+    local_calibrated_count = sum(
+        1 for s in sensors
+        if s.get("cell_id") == "cell_00"
+        and bool(s.get("calibrated", s.get("calibrado", False)))
+    )
+
+    for c in cells_map:
+        if c.get("cell_id") == "cell_00":
+            c["sensors_active"] = local_active_count
+            c["class_label"] = _class_from_count(local_active_count)
+
     map_center = _map_center(sensors, cells_map)
     center = system_center()
 
@@ -546,8 +613,8 @@ def build_public_live():
             "label": _network_label_en(net.get("label")),
             "cells_active": net.get("cells_active", 0),
             "cells_configured": net.get("cells_configured", 0),
-            "sensors_active": _pick(net, "total_active_sensors", "sensores_activos_total", 0),
-            "sensors_calibrated": _pick(net, "total_calibrated_sensors", "sensores_calibrados_total", 0),
+            "sensors_active": local_active_count,
+            "sensors_calibrated": local_calibrated_count,
         },
         "alert": {
             "active": alert_active,
