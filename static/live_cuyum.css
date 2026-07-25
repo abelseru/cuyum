@@ -972,3 +972,21 @@ button.simulation-button.simulation-bottom-button {
 .zone-center-dot {
   display: none !important;
 }
+
+/* Leaflet zoom controls: signo visible sobre fondo claro */
+.leaflet-control-zoom a,
+.leaflet-control-zoom a:visited {
+  color: #94A3B8 !important;
+  background: #F8FAFC !important;
+}
+
+.leaflet-control-zoom a:hover,
+.leaflet-control-zoom a:focus {
+  color: #64748B !important;
+  background: #E2E8F0 !important;
+}
+
+.leaflet-control-zoom a.leaflet-disabled {
+  color: #CBD5E1 !important;
+  background: #F8FAFC !important;
+}
