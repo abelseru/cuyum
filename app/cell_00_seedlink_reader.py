@@ -480,7 +480,7 @@ class AdaptiveSeedLinkReader(EasySeedLinkClient):
             "updated_at": ahora_iso(),
             "esp32": esp32,
             "zones": {
-                "cordillera_cuyo_adaptativa": zona
+                "local_adaptive_zone": zone
             }
         }
 
