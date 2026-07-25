@@ -288,6 +288,77 @@ def dedupe_physical_stations(sensors):
 
 
 
+
+def sensor_bearing_deg(center, s):
+    lat1 = math.radians(float(center["lat"]))
+    lat2 = math.radians(float(s["lat"]))
+    dlon = math.radians(float(s["lon"]) - float(center["lon"]))
+
+    y = math.sin(dlon) * math.cos(lat2)
+    x = math.cos(lat1) * math.sin(lat2) - math.sin(lat1) * math.cos(lat2) * math.cos(dlon)
+
+    return (math.degrees(math.atan2(y, x)) + 360) % 360
+
+
+def local_sector(center, s):
+    deg = sensor_bearing_deg(center, s)
+    sectors = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
+    return sectors[int((deg + 22.5) // 45) % 8]
+
+
+def local_selection_score(s):
+    # Menor es mejor.
+    # Override confiable primero, luego score, luego distancia.
+    return (
+        0 if s.get("_has_geo_override") else 1,
+        -fnum(s.get("score_selection"), 0.0),
+        fnum(s.get("distancia_km")),
+        channel_priority(s),
+        sensor_code(s) or "",
+    )
+
+
+def select_local_sensors_diverse(local_pool, center, local_max):
+    local_pool = sorted(local_pool, key=local_selection_score)
+
+    selected = []
+    used_codes = set()
+    used_sectors = set()
+
+    # Primera pasada: elegir un buen sensor por sector.
+    for s in local_pool:
+        if len(selected) >= local_max:
+            break
+
+        code = sensor_code(s)
+        sector = local_sector(center, s)
+
+        if not code or code in used_codes:
+            continue
+        if sector in used_sectors:
+            continue
+
+        s["local_sector"] = sector
+        selected.append(s)
+        used_codes.add(code)
+        used_sectors.add(sector)
+
+    # Segunda pasada: completar cupo con los mejores restantes.
+    for s in local_pool:
+        if len(selected) >= local_max:
+            break
+
+        code = sensor_code(s)
+        if not code or code in used_codes:
+            continue
+
+        s["local_sector"] = local_sector(center, s)
+        selected.append(s)
+        used_codes.add(code)
+
+    return selected
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--local-max-km", type=float, default=200.0)
@@ -361,7 +432,7 @@ def main():
         if fnum(s.get("distancia_km")) > args.local_max_km
     ]
 
-    local = sorted(local_candidates, key=local_score)[:args.local_max]
+    local = select_local_sensors_diverse(local_candidates, center, args.local_max)
 
     for s in local:
         s["rol"] = "anticipacion"
