@@ -359,6 +359,44 @@ def select_local_sensors_diverse(local_pool, center, local_max):
     return selected
 
 
+
+def to_english_sensor(s):
+    network = s.get("network") or s.get("red")
+    station = s.get("station") or s.get("estacion")
+    channel = s.get("channel") or s.get("canal")
+    name = s.get("name") or s.get("nombre") or s.get("station_name") or sensor_code(s)
+    distance = s.get("distance_km", s.get("distancia_km"))
+
+    out = {
+        "network": network,
+        "station": station,
+        "channel": channel,
+        "name": name,
+        "lat": s.get("lat"),
+        "lon": s.get("lon"),
+        "role": s.get("role") or s.get("rol"),
+        "can_confirm": bool(s.get("can_confirm", s.get("puede_confirmar", True))),
+        "can_trigger": bool(s.get("can_trigger", s.get("puede_disparar", False))),
+        "distance_km": round(fnum(distance), 1),
+        "state": s.get("state") or s.get("estado") or "active",
+        "source": s.get("source"),
+        "source_provider": s.get("source_provider"),
+    }
+
+    if s.get("cell_hint"):
+        out["cell_hint"] = s.get("cell_hint")
+    if s.get("direction"):
+        out["direction"] = s.get("direction")
+    if s.get("local_sector"):
+        out["local_sector"] = s.get("local_sector")
+    if s.get("_has_geo_override"):
+        out["_has_geo_override"] = True
+    if s.get("locality") or s.get("localidad"):
+        out["locality"] = s.get("locality") or s.get("localidad")
+
+    return out
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--local-max-km", type=float, default=200.0)
@@ -385,7 +423,7 @@ def main():
         source_sensors = catalog_sensors
     else:
         source_name = "candidate_inventory"
-        source_sensors = candidate.get("sensores", [])
+        source_sensors = candidate.get("sensors") or candidate.get("sensores", [])
 
     all_sensors = [normalize_sensor(s) for s in source_sensors if usable(s)]
     all_sensors = apply_geo_overrides(all_sensors, geo_overrides)
@@ -435,22 +473,19 @@ def main():
     local = select_local_sensors_diverse(local_candidates, center, args.local_max)
 
     for s in local:
-        s["rol"] = "anticipacion"
         s["role"] = "early_warning"
-        s["puede_disparar"] = True
-        s["puede_confirmar"] = True
+        s["can_trigger"] = True
+        s["can_confirm"] = True
         s["cell_hint"] = "cell_00"
 
     grouped = {}
     for s in observer_candidates:
         deg = bearing(float(center["lat"]), float(center["lon"]), float(s["lat"]), float(s["lon"]))
         sec = sector_name(deg)
-        s["rol"] = "observador_regional"
         s["role"] = "regional_observer"
-        s["puede_disparar"] = False
-        s["puede_confirmar"] = True
+        s["can_trigger"] = False
+        s["can_confirm"] = True
         s["direction"] = sec
-        s["direccion"] = sec
         grouped.setdefault(sec, []).append(s)
 
     zone_pack = []
@@ -474,9 +509,10 @@ def main():
             final_zones.append((nearest, sec, chosen))
             used_total += len(chosen)
 
-    # candidate_inventory final queda solo con sensores locales.
+    # Final candidate inventory keeps local sensors only.
     final_candidate = dict(candidate)
-    final_candidate["sensores"] = local
+    final_candidate.pop("sensores", None)
+    final_candidate["sensors"] = [to_english_sensor(s) for s in local]
     final_candidate["organized_by"] = "live_inventory_organizer"
     final_candidate["organized_at"] = datetime.now().isoformat()
     final_candidate["limits"] = {
@@ -506,7 +542,7 @@ def main():
                 "lat": round(lat_avg, 6),
                 "lon": round(lon_avg, 6),
             },
-            "sensores": chosen,
+            "sensors": [to_english_sensor(s) for s in chosen],
         }
 
         out = BASE / f"config/auto_cell_{idx:02d}_inventory.json"
@@ -523,8 +559,8 @@ def main():
         "local": [
             {
                 "code": sensor_code(s),
-                "name": s.get("nombre"),
-                "distance_km": s.get("distancia_km"),
+                "name": s.get("name") or s.get("nombre"),
+                "distance_km": s.get("distance_km") or s.get("distancia_km"),
             }
             for s in local
         ],
@@ -535,8 +571,8 @@ def main():
                 "sensors": [
                     {
                         "code": sensor_code(s),
-                        "name": s.get("nombre"),
-                        "distance_km": s.get("distancia_km"),
+                        "name": s.get("name") or s.get("nombre"),
+                        "distance_km": s.get("distance_km") or s.get("distancia_km"),
                     }
                     for s in chosen
                 ],
@@ -555,12 +591,12 @@ def main():
     lines.append(f"Usable candidates: {len(all_sensors)}")
     lines.append(f"Local sensors: {len(local)}")
     for s in local:
-        lines.append(f"  - LOCAL {sensor_code(s)} | {s.get('nombre')} | {s.get('distancia_km')} km")
+        lines.append(f"  - LOCAL {sensor_code(s)} | {s.get('name') or s.get('nombre')} | {s.get('distance_km') or s.get('distancia_km')} km")
     lines.append(f"Zones: {len(final_zones)}")
     for _, sec, chosen in final_zones:
         lines.append(f"  {sec}: {len(chosen)}")
         for s in chosen:
-            lines.append(f"    - {sensor_code(s)} | {s.get('nombre')} | {s.get('distancia_km')} km")
+            lines.append(f"    - {sensor_code(s)} | {s.get('name') or s.get('nombre')} | {s.get('distance_km') or s.get('distancia_km')} km")
     lines.append(f"Total final sensors: {used_total}")
     lines.append("Written:")
     for w in written:

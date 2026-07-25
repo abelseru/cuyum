@@ -183,7 +183,7 @@ def classify(center, sensors):
         }
 
         role_text = str(item.get("role") or "").strip().lower()
-        observer_only = role_text in ("observador_regional", "regional_observer", "observer_only")
+        observer_only = role_text in ("regional_observer", "regional_observer", "observer_only")
         validator_capable = bool(item["can_confirm"] or item["can_trigger"])
 
         if observer_only:
@@ -242,16 +242,16 @@ def split_code(code):
 def preview_sensor_entry(sensor, role, can_confirm, can_trigger):
     network, station, channel = split_code(sensor["code"])
     return {
-        "red": network,
-        "estacion": station,
-        "canal": channel,
-        "nombre": sensor.get("name") or sensor["code"],
+        "network": network,
+        "station": station,
+        "channel": channel,
+        "name": sensor.get("name") or sensor["code"],
         "lat": sensor.get("lat"),
         "lon": sensor.get("lon"),
-        "rol": role,
-        "puede_confirmar": bool(can_confirm),
-        "puede_disparar": bool(can_trigger),
-        "distancia_km": sensor.get("distance_km"),
+        "role": role,
+        "can_confirm": bool(can_confirm),
+        "can_trigger": bool(can_trigger),
+        "distance_km": sensor.get("distance_km"),
     }
 
 
@@ -263,7 +263,7 @@ def write_preview_files(plan):
     for s in plan.get("local_validators", []):
         sensors.append(preview_sensor_entry(
             s,
-            "anticipacion",
+            "early_warning",
             True,
             True
         ))
@@ -271,7 +271,7 @@ def write_preview_files(plan):
     for s in plan.get("reserve_context", []):
         sensors.append(preview_sensor_entry(
             s,
-            "anticipacion_secundaria",
+            "secondary_early_warning",
             True,
             True
         ))
@@ -279,7 +279,7 @@ def write_preview_files(plan):
     for s in plan.get("regional_observers", []):
         sensors.append(preview_sensor_entry(
             s,
-            "observador_regional",
+            "regional_observer",
             False,
             False
         ))
@@ -288,7 +288,7 @@ def write_preview_files(plan):
         "generated_by": "cuyum_bootstrap_world",
         "mode": "preview",
         "center": plan["center"],
-        "sensores": sensors,
+        "sensors": sensors,
     }
 
     (PREVIEW_DIR / "candidate_inventory.preview.json").write_text(
@@ -313,7 +313,7 @@ def write_preview_files(plan):
             "role": "early_warning",
             "center": center,
             "sensors": [
-                preview_sensor_entry(s, "anticipacion", True, True)
+                preview_sensor_entry(s, "early_warning", True, True)
                 for s in group
             ],
         }
@@ -340,8 +340,8 @@ def write_preview_files(plan):
     summary.append("Sensors:")
     for s in sensors:
         summary.append(
-            f"- {s['rol']:<24} | {s['nombre']} | "
-            f"{s['red']}.{s['estacion']}.{s['canal']} | "
+            f"- {s['role']:<24} | {s['name']} | "
+            f"{s['network']}.{s['station']}.{s['channel']} | "
             f"confirm={s['puede_confirmar']} trigger={s['puede_disparar']}"
         )
 
@@ -361,16 +361,16 @@ def split_code(code):
 def preview_sensor_entry(sensor, role, can_confirm, can_trigger):
     network, station, channel = split_code(sensor["code"])
     return {
-        "red": network,
-        "estacion": station,
-        "canal": channel,
-        "nombre": sensor.get("name") or sensor["code"],
+        "network": network,
+        "station": station,
+        "channel": channel,
+        "name": sensor.get("name") or sensor["code"],
         "lat": sensor.get("lat"),
         "lon": sensor.get("lon"),
-        "rol": role,
-        "puede_confirmar": bool(can_confirm),
-        "puede_disparar": bool(can_trigger),
-        "distancia_km": sensor.get("distance_km"),
+        "role": role,
+        "can_confirm": bool(can_confirm),
+        "can_trigger": bool(can_trigger),
+        "distance_km": sensor.get("distance_km"),
     }
 
 
@@ -382,7 +382,7 @@ def write_preview_files(plan):
     for s in plan.get("local_validators", []):
         sensors.append(preview_sensor_entry(
             s,
-            "anticipacion",
+            "early_warning",
             True,
             True
         ))
@@ -390,7 +390,7 @@ def write_preview_files(plan):
     for s in plan.get("reserve_context", []):
         sensors.append(preview_sensor_entry(
             s,
-            "anticipacion_secundaria",
+            "secondary_early_warning",
             True,
             True
         ))
@@ -398,7 +398,7 @@ def write_preview_files(plan):
     for s in plan.get("regional_observers", []):
         sensors.append(preview_sensor_entry(
             s,
-            "observador_regional",
+            "regional_observer",
             False,
             False
         ))
@@ -407,7 +407,7 @@ def write_preview_files(plan):
         "generated_by": "cuyum_bootstrap_world",
         "mode": "preview",
         "center": plan["center"],
-        "sensores": sensors,
+        "sensors": sensors,
     }
 
     (PREVIEW_DIR / "candidate_inventory.preview.json").write_text(
@@ -427,8 +427,8 @@ def write_preview_files(plan):
     summary.append("Sensors:")
     for s in sensors:
         summary.append(
-            f"- {s['rol']:<24} | {s['nombre']} | "
-            f"{s['red']}.{s['estacion']}.{s['canal']} | "
+            f"- {s['role']:<24} | {s['name']} | "
+            f"{s['network']}.{s['station']}.{s['channel']} | "
             f"confirm={s['puede_confirmar']} trigger={s['puede_disparar']}"
         )
 
@@ -455,7 +455,7 @@ def apply_preview_to_config():
 
     data = json.loads(source.read_text(encoding="utf-8"))
 
-    if not data.get("sensores") and "--force-empty-apply" not in sys.argv:
+    if not data.get("sensors") and "--force-empty-apply" not in sys.argv:
         raise SystemExit(
             "[error] preview has no sensors. Refusing to apply empty inventory. "
             "Use --force-empty-apply only if you intentionally want no coverage."
@@ -472,7 +472,7 @@ def apply_preview_to_config():
     lines.append(f"Source: {source}")
     lines.append(f"Target: {target}")
     lines.append(f"Backup: {backup_dir}")
-    lines.append(f"Sensors written: {len(data.get('sensores', []))}")
+    lines.append(f"Sensors written: {len(data.get('sensors', []))}")
 
     return lines
 

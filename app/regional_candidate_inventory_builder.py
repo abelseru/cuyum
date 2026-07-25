@@ -41,8 +41,8 @@ def channel_rank(channel):
 
 def role_for_distance(distance_km, index):
     if index <= 4:
-        return "anticipacion"
-    return "observador_regional"
+        return "early_warning"
+    return "regional_observer"
 
 
 def build_candidate_inventory(catalog, max_sensors):
@@ -81,24 +81,24 @@ def build_candidate_inventory(catalog, max_sensors):
 
     selected = ordered[:max_sensors]
 
-    sensores = []
+    sensors = []
     for i, s in enumerate(selected, 1):
         distance = float(s.get("distance_km", 0))
         role = role_for_distance(distance, i)
 
-        sensores.append({
-            "red": s.get("network"),
-            "estacion": s.get("station"),
-            "canal": s.get("channel"),
-            "nombre": s.get("name") or s.get("station"),
+        sensors.append({
+            "network": s.get("network"),
+            "station": s.get("station"),
+            "channel": s.get("channel"),
+            "name": s.get("name") or s.get("station"),
             "lat": s.get("lat"),
             "lon": s.get("lon"),
-            "rol": role,
-            "puede_confirmar": bool(s.get("can_confirm", True)),
-            "puede_disparar": bool(s.get("can_trigger", True)) and role == "anticipacion",
-            "distancia_km": round(distance, 1),
-            "estado": "pendiente_revision",
-            "observacion_revision": "pendiente de prueba SeedLink",
+            "role": role,
+            "can_confirm": bool(s.get("can_confirm", True)),
+            "can_trigger": bool(s.get("can_trigger", True)) and role == "early_warning",
+            "distance_km": round(distance, 1),
+            "state": "pending_review",
+            "review_note": "pending SeedLink liveness test",
             "source": "regional_station_catalog_builder",
             "source_provider": s.get("source_provider"),
         })
@@ -113,14 +113,13 @@ def build_candidate_inventory(catalog, max_sensors):
             "lon": center.get("lon"),
         },
         "seedlink_server": "rtserve.earthscope.org:18000",
-        "servidor_seedlink": "rtserve.earthscope.org:18000",
         "selection_policy": {
             "max_sensors": max_sensors,
             "dedupe": "one channel per network.station",
             "channel_priority": ["BHZ", "HHZ", "EHZ", "SHZ"],
             "note": "This preview is not applied to the live system until SeedLink liveness is tested."
         },
-        "sensores": sensores,
+        "sensors": sensors,
     }
 
 
@@ -132,15 +131,15 @@ def write_report(inv):
     lines.append(f"Generated: {inv.get('generated_at')}")
     lines.append(f"Center: {center.get('label')} lat={center.get('lat')} lon={center.get('lon')}")
     lines.append(f"SeedLink server: {inv.get('seedlink_server')}")
-    lines.append(f"Sensors selected: {len(inv.get('sensores', []))}")
+    lines.append(f"Sensors selected: {len(inv.get('sensors', []))}")
     lines.append("")
-    for i, s in enumerate(inv.get("sensores", []), 1):
+    for i, s in enumerate(inv.get("sensors", []), 1):
         lines.append(
-            f"{i:02d}. {s.get('red')}.{s.get('estacion')}.{s.get('canal'):<4} "
-            f"{s.get('nombre',''):<36} "
-            f"{s.get('distancia_km'):>7} km "
-            f"role={s.get('rol')} "
-            f"trigger={s.get('puede_disparar')}"
+            f"{i:02d}. {s.get('network')}.{s.get('station')}.{s.get('channel'):<4} "
+            f"{s.get('name',''):<36} "
+            f"{s.get('distance_km'):>7} km "
+            f"role={s.get('role')} "
+            f"trigger={s.get('can_trigger')}"
         )
 
     REPORT_FILE.parent.mkdir(parents=True, exist_ok=True)
