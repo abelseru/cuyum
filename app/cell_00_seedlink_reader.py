@@ -86,15 +86,15 @@ def magnitud_experimental(energia):
 
 
 def extraer_clave_trace(trace_id):
-    partes = trace_id.split(".")
-    if len(partes) < 4:
+    parts = trace_id.split(".")
+    if len(parts) < 4:
         return trace_id
 
-    red = partes[0]
+    network = parts[0]
     estacion = partes[1]
-    canal = partes[3]
+    channel = parts[3]
 
-    return f"{red}.{estacion}.{canal}"
+    return f"{network}.{station}.{channel}"
 
 
 def sensor_config_key(sensor):
@@ -110,7 +110,7 @@ def calculate_network_quality(sensor_states):
         if s.get("sensor_state") == "active"
     ]
 
-    anticipacion = [
+    early_warning_sensors = [
         s for s in activos
         if s.get("role") in ["early_warning", "secondary_early_warning"]
     ]
@@ -121,12 +121,12 @@ def calculate_network_quality(sensor_states):
     ]
 
     total_active = len(activos)
-    total_anticipacion = len(anticipacion)
+    total_early_warning = len(early_warning_sensors)
     total_confirmacion = len(confirmacion)
 
-    if total_active >= 4 and total_anticipacion >= 2:
+    if total_active >= 4 and total_early_warning >= 2:
         state = "good"
-    elif total_active >= 3 and total_anticipacion >= 1:
+    elif total_active >= 3 and total_early_warning >= 1:
         state = "degraded"
     elif total_active >= 2:
         state = "minimal"
@@ -139,7 +139,7 @@ def calculate_network_quality(sensor_states):
         
         "calibrated_sensors": len(calibrated),
         
-        "early_warning_active": total_anticipacion,
+        "early_warning_active": total_early_warning,
         "confirmation_active": total_confirmacion
     }
 
@@ -148,13 +148,13 @@ def event_level_from_signals(confirming_stations, has_strong_early_signal):
     count = len(confirming_stations)
 
     if count >= 3:
-        return "critico_experimental"
+        return "experimental_critical"
 
     if count >= 2:
-        return "aviso_interno"
+        return "internal_notice"
 
     if count == 1 and has_strong_early_signal:
-        return "aviso_interno"
+        return "internal_notice"
 
     if count == 1:
         return "observacion_urgente"
@@ -163,7 +163,7 @@ def event_level_from_signals(confirming_stations, has_strong_early_signal):
 
 
 def datos_esp32(nivel, led_nivel, magnitud, mensaje, network_quality):
-    if network_quality.get("state", network_quality.get("estado")) == "insufficient" and nivel == "normal":
+    if network_quality.get("state", network_quality.get("estado")) == "insufficient" and level == "normal":
         return {
             "sonar": False,
             "buzzer_segundos": 0,
@@ -173,23 +173,23 @@ def datos_esp32(nivel, led_nivel, magnitud, mensaje, network_quality):
             "mensaje": "Fuentes insuficientes"
         }
 
-    if nivel in ["aviso_interno", "critico_experimental"]:
+    if level in ["internal_notice", "experimental_critical"]:
         return {
             "sonar": True,
             "buzzer_segundos": 5,
             "led_nivel": led_nivel,
             "estimated_magnitude": magnitud,
-            "nivel": nivel,
+            "nivel": level,
             "mensaje": mensaje
         }
 
-    if nivel == "observacion_urgente":
+    if level == "observacion_urgente":
         return {
             "sonar": False,
             "buzzer_segundos": 0,
             "led_nivel": led_nivel,
             "estimated_magnitude": magnitud,
-            "nivel": nivel,
+            "nivel": level,
             "mensaje": mensaje
         }
 
@@ -204,11 +204,11 @@ def datos_esp32(nivel, led_nivel, magnitud, mensaje, network_quality):
 
 
 def led_por_nivel(nivel):
-    if nivel == "critico_experimental":
+    if level == "experimental_critical":
         return 10
-    if nivel == "aviso_interno":
+    if level == "internal_notice":
         return 7
-    if nivel == "observacion_urgente":
+    if level == "observacion_urgente":
         return 4
     return 0
 
@@ -263,7 +263,7 @@ class AdaptiveSeedLinkReader(EasySeedLinkClient):
                 "latency_seconds": round(latencia, 1),
                 "updated_at": ahora_iso()
             }
-            self.escribir_estado()
+            self.write_state()
             print(f"DISCARDED {trace_id} latency={round(latencia, 1)}s")
             return
 
@@ -272,12 +272,12 @@ class AdaptiveSeedLinkReader(EasySeedLinkClient):
 
         self.historial_base[key].append(energia)
 
-        calibrado = key in self.base
+        calibrated = key in self.base
 
-        if not calibrado:
+        if not calibrated:
             if len(self.historial_base[key]) >= PAQUETES_BASE:
                 self.base[key] = median(self.historial_base[key][-PAQUETES_BASE:])
-                calibrado = True
+                calibrated = True
                 print("BASE DEFINIDA:", key, "base=", round(self.base[key], 2))
             else:
                 self.sensor_states[key] = {
@@ -303,7 +303,7 @@ class AdaptiveSeedLinkReader(EasySeedLinkClient):
                     "latency_seconds": round(latencia, 1),
                     "updated_at": ahora_iso()
                 }
-                self.escribir_estado()
+                self.write_state()
                 print(f"CALIBRATING {trace_id} {len(self.historial_base[key])}/{PAQUETES_BASE}")
                 return
 
@@ -372,7 +372,7 @@ class AdaptiveSeedLinkReader(EasySeedLinkClient):
         }
 
         self.limpiar_flags_viejos(float(ahora.timestamp))
-        self.escribir_estado()
+        self.write_state()
 
         print(
             f"{trace_id} energia={round(energia, 2)} "
@@ -391,7 +391,7 @@ class AdaptiveSeedLinkReader(EasySeedLinkClient):
         for estacion in vencidos:
             del self.flags_recientes[estacion]
 
-    def construir_zona(self):
+    def build_zone(self):
         confirming_stations = list(self.flags_recientes.keys())
 
         has_strong_early_signal = False
@@ -408,7 +408,7 @@ class AdaptiveSeedLinkReader(EasySeedLinkClient):
             ):
                 has_strong_early_signal = True
 
-        nivel = event_level_from_signals(
+        level = event_level_from_signals(
             confirming_stations,
             has_strong_early_signal
         )
@@ -416,25 +416,25 @@ class AdaptiveSeedLinkReader(EasySeedLinkClient):
         network_quality = calculate_network_quality(self.sensor_states)
         led = led_por_nivel(nivel)
 
-        if nivel == "critico_experimental":
+        if level == "experimental_critical":
             mensaje = "Experimental critical state: several independent stations confirming"
-        elif nivel == "aviso_interno":
+        elif level == "internal_notice":
             mensaje = "Experimental internal warning: regional anomaly detected"
-        elif nivel == "observacion_urgente":
+        elif level == "observacion_urgente":
             mensaje = "Urgent observation: one station detected anomaly"
         else:
             mensaje = "normal"
 
         esp32 = datos_esp32(nivel, led, magnitud_max, mensaje, network_quality)
 
-        zona = {
-            "estado": nivel,
-            "flag": nivel != "normal",
+        zone = {
+            "state": level,
+            "flag": level != "normal",
             "modo": "seedlink_adaptativo",
             "calibracion": "continua",
             "ventana_evento_segundos": VENTANA_EVENTO_SEGUNDOS,
             "total_sensors": len(self.sensors),
-            "sensores_totales": len(self.sensors),
+            "total_sensors_legacy": len(self.sensors),
             "calibrated_sensors": network_quality.get("calibrated_sensors", 0),
             
             "active_sensors": network_quality.get("active_sensors", 0),
@@ -459,16 +459,16 @@ class AdaptiveSeedLinkReader(EasySeedLinkClient):
             "updated_at": ahora_iso(),
             "flags_recientes": self.flags_recientes,
             "sensors": self.sensor_states,
-            "sensores": self.sensor_states
+            "sensors": self.sensor_states
         }
 
-        return zona, esp32
+        return zone, esp32
 
-    def escribir_estado(self):
-        zona, esp32 = self.construir_zona()
+    def write_state(self):
+        zone, esp32 = self.build_zone()
 
         salida = {
-            "grupo": "zona_grupo_01",
+            "group": "zone_group_01",
             "modo": "seedlink_adaptativo_v2",
             "sistema": "Nogues Experimental Monitoring Node",
             "advertencia": (
@@ -479,7 +479,7 @@ class AdaptiveSeedLinkReader(EasySeedLinkClient):
             "archivo_inventario": ARCHIVO_INVENTARIO,
             "updated_at": ahora_iso(),
             "esp32": esp32,
-            "zonas": {
+            "zones": {
                 "cordillera_cuyo_adaptativa": zona
             }
         }

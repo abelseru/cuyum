@@ -50,7 +50,7 @@ def load_inventory(path):
     server = data.get('seedlink_server') or data.get('seedlink_server') or 'rtserve.earthscope.org:18000'
     sensors = []
     for s in data.get('sensors', data.get('sensores', [])):
-        if s.get('estado') in ['deshabilitado', 'caido', 'sospechoso']:
+        if s.get('state', s.get('estado')) in ['disabled', 'down', 'suspect', 'deshabilitado', 'caido', 'sospechoso']:
             continue
         sensors.append(s)
     return server, sensors, data
@@ -112,13 +112,13 @@ class AutoCellReader(EasySeedLinkClient):
         self.base = {}
         self.sensor_states = {}
         self.recent_flags = {}
-        self.mapa = {sensor_config_key(s): s for s in sensors}
+        self.sensor_map = {sensor_config_key(s): s for s in sensors}
 
     def on_data(self, trace):
         key = extraer_key_trace(trace.id)
-        if key not in self.mapa:
+        if key not in self.sensor_map:
             return
-        cfg = self.mapa[key]
+        cfg = self.sensor_map[key]
         energy = energy_simple(trace)
         magnitude = magnitude_experimental(energy)
         ahora = UTCDateTime()
@@ -126,23 +126,23 @@ class AutoCellReader(EasySeedLinkClient):
 
         if latency > LATENCIA_MAXIMA_SEGUNDOS:
             self.sensor_states[key] = self.base_state(trace.id, key, cfg, 'latency_alta', False, latency, energy, magnitude)
-            self.escribir_estado()
+            self.write_state()
             print(f'DESCARTADO {trace.id} latency={round(latency, 1)}s')
             return
 
         self.historial_base.setdefault(key, []).append(energy)
-        calibrado = key in self.base
-        if not calibrado:
+        calibrated = key in self.base
+        if not calibrated:
             if len(self.historial_base[key]) >= PAQUETES_BASE:
                 self.base[key] = median(self.historial_base[key][-PAQUETES_BASE:])
-                calibrado = True
+                calibrated = True
                 print('BASE DEFINIDA:', key, 'base=', round(self.base[key], 2))
             else:
-                st = self.base_state(trace.id, key, cfg, 'calibrando', False, latency, energy, magnitude)
+                st = self.base_state(trace.id, key, cfg, 'calibrating', False, latency, energy, magnitude)
                 st['paquetes_base'] = len(self.historial_base[key])
                 st['paquetes_base_necesarios'] = PAQUETES_BASE
                 self.sensor_states[key] = st
-                self.escribir_estado()
+                self.write_state()
                 print(f'CALIBRATING {trace.id} {len(self.historial_base[key])}/{PAQUETES_BASE}')
                 return
 
@@ -194,10 +194,10 @@ class AutoCellReader(EasySeedLinkClient):
             'updated_at': ahora_iso()
         }
         self.limpiar_flags_viejos(float(ahora.timestamp))
-        self.escribir_estado()
+        self.write_state()
         print(f'{trace.id} energy={round(energy,2)} base={round(sensor_baseline,2)} ratio={round(ratio,2)} flag={flag} strong={flag_strong}')
 
-    def base_state(self, trace_id, key, cfg, estado, calibrado, latency, energy, magnitude):
+    def base_state(self, trace_id, key, cfg, state, calibrated, latency, energy, magnitude):
         return {
             'trace_id': trace_id,
             'key': key,
@@ -207,8 +207,8 @@ class AutoCellReader(EasySeedLinkClient):
             'role': cfg.get('role', 'early_warning'),
             'name': cfg.get('name', key),
             'distance_km': cfg.get('distance_km'),
-            'sensor_state': estado,
-            'calibrated': calibrado,
+            'sensor_state': state,
+            'calibrated': calibrated,
             'energy_actual': round(energy, 2),
             'magnitude_estimada': magnitude,
             'flag': False,
@@ -224,7 +224,7 @@ class AutoCellReader(EasySeedLinkClient):
             if ahora_ts - self.recent_flags[estacion]['timestamp'] > VENTANA_EVENTO_SEGUNDOS:
                 del self.recent_flags[estacion]
 
-    def escribir_estado(self):
+    def write_state(self):
         quality = calculate_network_quality(self.sensor_states, self.inventory.get('min_good_sensors', 5))
         level = event_level_from_flags(self.recent_flags)
         salida = {
