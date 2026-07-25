@@ -163,7 +163,7 @@ def main():
 
     print(f"Written: {OUT_PREVIEW}")
     print(f"Written: {REPORT_FILE}")
-    print(f"Sensors selected: {len(inv.get('sensores', []))}")
+    print(f"Sensors selected: {len(inv.get('sensors', []))}")
 
     if args.apply:
         target = BASE / "config/candidate_inventory.json"
