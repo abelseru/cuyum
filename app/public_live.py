@@ -98,27 +98,41 @@ def _sensor_key(red=None, estacion=None, canal=None, code=None, clave=None):
 
 
 def _human_class(label):
-    text = str(label or "").strip().lower()
-    table = {
-        "strong_cell": "high",
-        "good_cell": "good",
-        "minimal_cell": "minimal",
-        "single_station": "listening",
-        "blind_zone": "waiting",
-        "stale_cell": "waiting",
-        "alta": "high",
-        "buena": "good",
-        "mínima": "minimal",
-        "minima": "minimal",
-        "escucha": "listening",
-        "en espera": "waiting",
-        "high": "high",
-        "good": "good",
-        "minimal": "minimal",
-        "listening": "listening",
-        "waiting": "waiting",
+    if label is None:
+        return "en espera"
+
+    key = str(label).strip().lower()
+
+    aliases = {
+        "alta": "alta",
+        "high": "alta",
+        "strong": "alta",
+        "strong_cell": "alta",
+
+        "buena": "buena",
+        "good": "buena",
+        "good_cell": "buena",
+
+        "mínima": "mínima",
+        "minima": "mínima",
+        "minimal": "mínima",
+        "minimum": "mínima",
+
+        "regular": "regular",
+        "listening": "regular",
+        "single_station": "regular",
+        "escucha": "regular",
+
+        "sin cobertura": "sin datos recientes",
+        "blind_zone": "sin datos recientes",
+        "stale_cell": "sin datos recientes",
+        "sin datos": "sin datos recientes",
+        "sin datos recientes": "sin datos recientes",
+
+        "contexto": "contexto",
     }
-    return table.get(text, text or "unknown")
+
+    return aliases.get(key, str(label))
 
 
 def _network_label_en(label):
@@ -550,6 +564,78 @@ def _map_center(sensors, cells):
     return {"lat": round(lat, 5), "lon": round(lon, 5), "zoom": 6}
 
 
+
+def _active_sensor_public(s):
+    return str(s.get("state") or "").lower() in (
+        "active", "activo", "vivo", "calibrating", "calibrando"
+    )
+
+
+def _public_cells_from_display(public_cells, sensors, center):
+    by_id = {}
+
+    for s in sensors or []:
+        cid = s.get("cell_id")
+        if not cid:
+            continue
+        by_id.setdefault(cid, []).append(s)
+
+    out = []
+
+    for c in public_cells or []:
+        cid = c.get("cell_id")
+        if not cid or cid == "regional_observers":
+            continue
+
+        items = by_id.get(cid, [])
+
+        lat = None
+        lon = None
+
+        if cid == "cell_00":
+            lat = _as_float(center.get("lat"), None)
+            lon = _as_float(center.get("lon"), None)
+        else:
+            pts = []
+            for s in items:
+                slat = _as_float(s.get("lat"), None)
+                slon = _as_float(s.get("lon"), None)
+                if slat is not None and slon is not None:
+                    pts.append((slat, slon))
+
+            if pts:
+                lat = sum(x for x, _ in pts) / len(pts)
+                lon = sum(y for _, y in pts) / len(pts)
+
+        if lat is None or lon is None:
+            continue
+
+        active_count = len([s for s in items if _active_sensor_public(s)])
+        calibrated_count = len([
+            s for s in items
+            if bool(s.get("calibrated", s.get("calibrado", False)))
+        ])
+
+        if active_count == 0:
+            active_count = _as_int(c.get("sensors_active", 0))
+
+        out.append({
+            "cell_id": cid,
+            "label": c.get("label") or cid,
+            "role": c.get("role"),
+            "class_label": _human_class(c.get("class_label") or c.get("class")),
+            "state_label": _human_state(c.get("state_label") or c.get("state")),
+            "lat": round(lat, 6),
+            "lon": round(lon, 6),
+            "sensors_active": active_count,
+            "sensors_calibrated": calibrated_count,
+            "warning_seconds": _as_float(c.get("warning_seconds"), 0.0),
+            "direction_label": c.get("direction_label") or c.get("direction") or "",
+        })
+
+    return out
+
+
 def build_public_live():
     fused = build_multicell_state()
     event_journal.record_fused_snapshot(fused)
@@ -564,7 +650,8 @@ def build_public_live():
         cid = sensor.get("cell_id")
         if cid in label_lookup:
             sensor["cell_label"] = label_lookup[cid]
-    cells_map = _public_cells_for_map(fused.get("cells", {}))
+    center = system_center()
+    cells_map = _public_cells_from_display(public_cells, sensors, center)
 
     local_active_count = sum(
         1 for s in sensors
@@ -583,7 +670,6 @@ def build_public_live():
             c["class_label"] = _class_from_count(local_active_count)
 
     map_center = _map_center(sensors, cells_map)
-    center = system_center()
 
     alert_active = bool(_pick(event, "sound", "sonar", False)) or str(event.get("level", "normal")).lower() not in ("normal", "observacion")
     poll_ms = 1500 if alert_active else 5000
@@ -613,8 +699,8 @@ def build_public_live():
             "label": _network_label_en(net.get("label")),
             "cells_active": net.get("cells_active", 0),
             "cells_configured": net.get("cells_configured", 0),
-            "sensors_active": local_active_count,
-            "sensors_calibrated": local_calibrated_count,
+            "sensors_active": len([s for s in sensors if _active_sensor_public(s)]),
+            "sensors_calibrated": len([s for s in sensors if bool(s.get("calibrated", s.get("calibrado", False)))]),
         },
         "alert": {
             "active": alert_active,

@@ -10,6 +10,8 @@ BASE = Path(__file__).resolve().parent.parent
 
 CENTER_FILE = BASE / "config/system_center.json"
 CANDIDATE_FILE = BASE / "config/candidate_inventory.json"
+STATION_CATALOG_FILE = BASE / "config/seedlink_station_catalog.json"
+GEO_OVERRIDES_FILE = BASE / "config/sensor_geo_overrides.json"
 REPORT_JSON = BASE / "runtime/live_inventory_organizer_report.json"
 REPORT_TXT = BASE / "runtime/live_inventory_organizer_report.txt"
 
@@ -48,6 +50,72 @@ def sensor_code(s):
 
 def has_geo(s):
     return s.get("lat") is not None and s.get("lon") is not None
+
+
+def haversine_km(lat1, lon1, lat2, lon2):
+    r = 6371.0
+    p1 = math.radians(float(lat1))
+    p2 = math.radians(float(lat2))
+    dp = math.radians(float(lat2) - float(lat1))
+    dl = math.radians(float(lon2) - float(lon1))
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * r * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def catalog_items_to_sensors(catalog, center):
+    raw = catalog.get("sensors") or catalog.get("sensores") or catalog.get("stations") or catalog
+
+    if isinstance(raw, dict):
+        items = list(raw.values())
+    elif isinstance(raw, list):
+        items = raw
+    else:
+        items = []
+
+    out = []
+
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+
+        s = dict(item)
+
+        red = s.get("red") or s.get("network")
+        est = s.get("estacion") or s.get("station")
+        can = s.get("canal") or s.get("channel")
+
+        if not red or not est or not can:
+            sid = s.get("sensor_id") or s.get("id") or ""
+            parts = str(sid).split(".")
+            if len(parts) >= 3:
+                red = red or parts[0]
+                est = est or parts[1]
+                can = can or parts[-1]
+
+        s["red"] = red
+        s["estacion"] = est
+        s["canal"] = can
+        s["nombre"] = s.get("nombre") or s.get("name") or s.get("station_name") or f"{red}.{est}.{can}"
+
+        lat = fnum(s.get("lat"), None)
+        lon = fnum(s.get("lon"), None)
+
+        if lat is None or lon is None:
+            continue
+
+        s["lat"] = lat
+        s["lon"] = lon
+
+        dist = fnum(s.get("distancia_km") or s.get("distance_km"), None)
+        if dist is None:
+            dist = haversine_km(center["lat"], center["lon"], lat, lon)
+
+        s["distancia_km"] = round(dist, 1)
+
+        if red and est and can:
+            out.append(s)
+
+    return out
 
 
 def usable(s):
@@ -132,6 +200,94 @@ def normalize_sensor(s):
     return out
 
 
+def station_key(s):
+    red = s.get("red") or s.get("network")
+    est = s.get("estacion") or s.get("station")
+    if not red or not est:
+        return sensor_code(s)
+    return f"{red}.{est}"
+
+
+def channel_priority(s):
+    canal = str(s.get("canal") or s.get("channel") or "").upper()
+    order = {
+        "BHZ": 0,
+        "HHZ": 1,
+        "EHZ": 2,
+        "SHZ": 3,
+    }
+    return order.get(canal, 99)
+
+
+def apply_geo_overrides(sensors, overrides):
+    if not isinstance(overrides, dict):
+        return sensors
+
+    # El archivo puede venir como {"RI.LPCA.EHZ": {...}} o {"sensors": {...}}
+    table = overrides.get("sensors") if isinstance(overrides.get("sensors"), dict) else overrides
+
+    out = []
+    for s in sensors:
+        code = sensor_code(s)
+        key_station = station_key(s)
+
+        ov = None
+        if code in table:
+            ov = table.get(code)
+        elif key_station in table:
+            ov = table.get(key_station)
+
+        if isinstance(ov, dict):
+            s = dict(s)
+            s["_has_geo_override"] = True
+            if ov.get("lat") is not None:
+                s["lat"] = ov.get("lat")
+            if ov.get("lon") is not None:
+                s["lon"] = ov.get("lon")
+            if ov.get("name") or ov.get("nombre"):
+                s["nombre"] = ov.get("nombre") or ov.get("name")
+            if ov.get("localidad"):
+                s["localidad"] = ov.get("localidad")
+
+        out.append(s)
+
+    return out
+
+
+def dedupe_physical_stations(sensors):
+    best = {}
+
+    for s in sensors:
+        key = station_key(s)
+        if not key:
+            continue
+
+        current = best.get(key)
+        if current is None:
+            best[key] = s
+            continue
+
+        # Misma estación física: preferir canal vertical broadband y luego menor distancia.
+        new_rank = (
+            0 if s.get("_has_geo_override") else 1,
+            channel_priority(s),
+            fnum(s.get("distancia_km")),
+            sensor_code(s) or "",
+        )
+        old_rank = (
+            0 if current.get("_has_geo_override") else 1,
+            channel_priority(current),
+            fnum(current.get("distancia_km")),
+            sensor_code(current) or "",
+        )
+
+        if new_rank < old_rank:
+            best[key] = s
+
+    return list(best.values())
+
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--local-max-km", type=float, default=200.0)
@@ -143,15 +299,45 @@ def main():
 
     center = load_json(CENTER_FILE)
     candidate = load_json(CANDIDATE_FILE)
+    station_catalog = load_json(STATION_CATALOG_FILE)
+    geo_overrides = load_json(GEO_OVERRIDES_FILE)
 
     if "lat" not in center or "lon" not in center:
         raise SystemExit("config/system_center.json no tiene lat/lon")
 
-    all_sensors = [normalize_sensor(s) for s in candidate.get("sensores", []) if usable(s)]
+    # Fuente principal: catálogo completo recién reconstruido para este centro.
+    # candidate_inventory puede venir ya podado; no debe decidir la selección final.
+    catalog_sensors = catalog_items_to_sensors(station_catalog, center)
+
+    if catalog_sensors:
+        source_name = "seedlink_station_catalog"
+        source_sensors = catalog_sensors
+    else:
+        source_name = "candidate_inventory"
+        source_sensors = candidate.get("sensores", [])
+
+    all_sensors = [normalize_sensor(s) for s in source_sensors if usable(s)]
+    all_sensors = apply_geo_overrides(all_sensors, geo_overrides)
+
+    # Recalcular distancia después de aplicar overrides.
+    recalculated = []
+    for s in all_sensors:
+        if not usable(s):
+            continue
+        s = normalize_sensor(s)
+        s["distancia_km"] = round(
+            haversine_km(center["lat"], center["lon"], s["lat"], s["lon"]),
+            1
+        )
+        recalculated.append(s)
+
     all_sensors = [
-        s for s in all_sensors
+        s for s in recalculated
         if fnum(s.get("distancia_km")) <= 800
     ]
+
+    # Una estación física cuenta una sola vez.
+    all_sensors = dedupe_physical_stations(all_sensors)
 
     # Reset completo de inventarios y estados de celdas anteriores.
     # Esto se ejecuta solo cuando se reorganiza por cambio de centro,
@@ -179,6 +365,7 @@ def main():
 
     for s in local:
         s["rol"] = "anticipacion"
+        s["role"] = "early_warning"
         s["puede_disparar"] = True
         s["puede_confirmar"] = True
         s["cell_hint"] = "cell_00"
@@ -188,6 +375,7 @@ def main():
         deg = bearing(float(center["lat"]), float(center["lon"]), float(s["lat"]), float(s["lon"]))
         sec = sector_name(deg)
         s["rol"] = "observador_regional"
+        s["role"] = "regional_observer"
         s["puede_disparar"] = False
         s["puede_confirmar"] = True
         s["direction"] = sec
@@ -256,6 +444,7 @@ def main():
 
     report = {
         "center": center,
+        "source": source_name,
         "all_usable_candidates": len(all_sensors),
         "local_count": len(local),
         "zone_count": len(final_zones),

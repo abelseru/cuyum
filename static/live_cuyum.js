@@ -134,7 +134,17 @@ function escapeHtml(value) {
     return 10;
   }
 
-  function displayCellId(cell, i) {
+  
+  const CELL_COLOR_BY_ID = {
+    cell_00: '#DB2777',
+    auto_cell_01: '#06B6D4',
+    auto_cell_02: '#2563EB',
+    auto_cell_03: '#3730A3',
+    auto_cell_04: '#7C3AED',
+    regional_observers: '#CBD5E1'
+  };
+
+function displayCellId(cell, i) {
     return cell.cell_id || cell.id || `cell_${i}`;
   }
 
@@ -148,7 +158,11 @@ function escapeHtml(value) {
   }
 
   function cellColor(cells, cellId) {
-    return cellColorByIndex(cellIndex(cells, cellId));
+    const id = String(cellId || '');
+    if (CELL_COLOR_BY_ID[id]) return CELL_COLOR_BY_ID[id];
+
+    const idx = cellIndex(cells, cellId);
+    return cellColorByIndex(idx);
   }
 
   function initMap() {
@@ -232,7 +246,7 @@ function escapeHtml(value) {
     }
     cells.slice(0, 6).forEach((cell, index) => {
       const id = displayCellId(cell, index);
-      const color = cellColorByIndex(index);
+      const color = cellColor(cells, cell.cell_id || cell.id || `cell_${index}`);
       const label = uiClassLabel(cell.class_label || cell.class || 'waiting');
       const row = document.createElement('div');
       row.className = 'zone-row';
@@ -304,15 +318,45 @@ function escapeHtml(value) {
   }
 
   function sensorCellId(sensor) {
+    const cid = sensor.cell_id || sensor.cell || sensor.cellId;
+
+    // Las auto_cell_* son zonas reales. No deben convertirse en
+    // regional_observers, aunque su role interno sea regional_observer.
+    if (cid && String(cid).startsWith('auto_cell_')) return cid;
+
+    if (cid) return cid;
+
     if (isRegionalObserver(sensor)) return 'regional_observers';
-    return sensor.cell_id || sensor.cell || 'sin_celda';
+
+    return 'sin_celda';
   }
 
   function sensorStyle(sensor, cells) {
-    const color = isRegionalObserver(sensor) ? cellColor(cells, 'regional_observers') : cellColor(cells, sensorCellId(sensor));
-    if (sensor.flag) return { radius: 9, color: '#2b0b0b', weight: 2, fillColor: '#e00000', fillOpacity: 1, opacity: 1 };
-    if (sensor.calibrated === false) return { radius: 7, color: '#ffffff', weight: 2, fillColor: '#94a3b8', fillOpacity: .9, opacity: .95 };
-    return { radius: 7, color: '#ffffff', weight: 2.5, fillColor: color, fillOpacity: .92, opacity: .98 };
+    const cid = sensorCellId(sensor);
+    const color = cellColor(cells, cid);
+
+    if (sensor.flag) {
+      return {
+        radius: 9,
+        color: '#2b0b0b',
+        weight: 2,
+        fillColor: '#e00000',
+        fillOpacity: 1,
+        opacity: 1
+      };
+    }
+
+    const calibrated = sensor.calibrated !== false;
+
+    return {
+      radius: calibrated ? 7 : 6,
+      color: calibrated ? '#ffffff' : color,
+      weight: calibrated ? 2.5 : 2,
+      fillColor: color,
+      fillOpacity: calibrated ? 0.92 : 0.55,
+      opacity: calibrated ? 0.98 : 0.85,
+      dashArray: calibrated ? null : '4 4'
+    };
   }
 
   function zoneStyle(cell, cells) {
@@ -425,7 +469,7 @@ function escapeHtml(value) {
     const localCell = cells.find(c => c.cell_id === 'cell_00') || { lat: home.lat, lon: home.lon, label: 'Local' };
 
     cells.forEach((cell, index) => {
-      const color = cellColorByIndex(index);
+      const color = cellColor(cells, cell.cell_id || cell.id || `cell_${index}`);
       if (cell.cell_id !== 'cell_00') {
         L.polyline([[localCell.lat, localCell.lon], [cell.lat, cell.lon]], {
           color, opacity: .42, weight: 2, dashArray: '6 8', interactive: false
