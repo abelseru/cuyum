@@ -448,8 +448,6 @@ class CuyumHandler(BaseHTTPRequestHandler):
                     "endpoints": [
                         "/app",
                         "/json",
-                        "/regional-preview",
-                        "/json/regional-preview",
                         "/reg",
                         "/api/node/poll?node_id=node_01",
                         "/api/esp32/poll?node_id=node_01",
