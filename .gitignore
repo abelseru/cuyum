@@ -79,3 +79,6 @@ audits/
 
 # Generic local backup files
 *.bak
+config/*.backup_*
+app/*.backup_*
+static/*.backup_*
