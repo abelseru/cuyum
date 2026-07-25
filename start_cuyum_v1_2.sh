@@ -37,76 +37,15 @@ if [ -f app/retention_cleaner.py ]; then
   python app/retention_cleaner.py || echo "WARNING: retention cleanup failed"
 fi
 
-echo "[4/9] Preparing auto cell inventories..."
+echo "[4/8] Preparing auto cell inventories..."
 echo "Using existing config/auto_cell_*_inventory.json microcell inventories"
-ls config/auto_cell_*_inventory.json 2>/dev/null || echo "WARNING: no auto microcell inventories found"
+ls config/auto_cell_*_inventory.json 2>/dev/null || echo "WARNING: no auto microcell inventories found" 
 
-echo "[5/9] Updating regional preview for current center..."
-if [ -f app/regional_auto_preview.py ]; then
-  CENTER_VARS=$(./venv/bin/python - <<'PYCENTER'
-import json, shlex
-from pathlib import Path
-
-p = Path("config/system_center.json")
-data = json.loads(p.read_text(encoding="utf-8"))
-
-lat = data.get("lat")
-lon = data.get("lon")
-label = data.get("label") or data.get("name") or "Centro actual"
-
-if lat is None or lon is None:
-    raise SystemExit("system_center.json without lat/lon")
-
-print("CENTER_LAT=" + shlex.quote(str(lat)))
-print("CENTER_LON=" + shlex.quote(str(lon)))
-print("CENTER_LABEL=" + shlex.quote(str(label)))
-PYCENTER
-)
-  eval "$CENTER_VARS"
-
-  REGIONAL_PREVIEW_DURATION="${REGIONAL_PREVIEW_DURATION:-45}"
-  REGIONAL_PREVIEW_MAX_SENSORS="${REGIONAL_PREVIEW_MAX_SENSORS:-120}"
-  REGIONAL_PREVIEW_MAX_KM="${REGIONAL_PREVIEW_MAX_KM:-800}"
-
-  mkdir -p runtime/bootstrap_preview runtime_logs
-  rm -f runtime/regional_auto_preview_summary.json
-  rm -f runtime/regional_auto_preview_summary.txt
-  rm -f runtime/seedlink_preview_liveness_result.json
-  rm -f runtime/seedlink_preview_liveness_result.txt
-  rm -f runtime/bootstrap_preview/candidate_inventory.alive.preview.json
-
-  (
-    echo "Regional preview started: $(date -Is)"
-    echo "Center: $CENTER_LABEL lat=$CENTER_LAT lon=$CENTER_LON"
-    echo "Duration: $REGIONAL_PREVIEW_DURATION seconds"
-    echo "Max sensors: $REGIONAL_PREVIEW_MAX_SENSORS"
-    echo "Max km: $REGIONAL_PREVIEW_MAX_KM"
-    echo
-
-    ./venv/bin/python app/regional_auto_preview.py \
-      --lat "$CENTER_LAT" \
-      --lon "$CENTER_LON" \
-      --label "$CENTER_LABEL" \
-      --duration "$REGIONAL_PREVIEW_DURATION" \
-      --max-sensors "$REGIONAL_PREVIEW_MAX_SENSORS" \
-      --max-km "$REGIONAL_PREVIEW_MAX_KM" \
-      --provider IRIS
-
-    echo
-    echo "Regional preview finished: $(date -Is)"
-  ) > runtime_logs/logs_regional_preview.txt 2>&1 &
-
-  echo "Regional preview updating in background."
-  echo "Log: runtime_logs/logs_regional_preview.txt"
-else
-  echo "WARNING: app/regional_auto_preview.py not found"
-fi
-
-echo "[6/9] Starting cell_00 reader..."
+echo "[5/8] Starting cell_00 reader..."
 python -u app/cell_00_seedlink_reader.py > runtime_logs/logs_lector.txt 2>&1 &
 sleep 2
 
-echo "[7/9] Starting auto cell readers..."
+echo "[6/8] Starting auto cell readers..."
 for inv in config/auto_cell_*_inventory.json; do
   [ -f "$inv" ] || continue
   base=$(basename "$inv")
@@ -116,7 +55,7 @@ for inv in config/auto_cell_*_inventory.json; do
 done
 sleep 2
 
-echo "[8/9] Starting discovery and auditor..."
+echo "[7/8] Starting discovery and auditor..."
 if [ -f scripts/periodic_discovery.sh ]; then
   ./scripts/periodic_discovery.sh > runtime_logs/logs_descubridor.txt 2>&1 &
 else
@@ -130,7 +69,7 @@ else
 fi
 sleep 2
 
-echo "[9/9] Starting Cuyum on port 5050..."
+echo "[8/8] Starting Cuyum on port 5050..."
 python3 -m py_compile app/plain_python_server.py app/public_api_v1.py
 ./venv/bin/python -u app/plain_python_server.py > runtime_logs/logs_cuyum_server.txt 2>&1 &
 sleep 5
