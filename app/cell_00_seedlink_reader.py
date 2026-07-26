@@ -172,14 +172,14 @@ def event_level_from_signals(confirming_stations, has_strong_early_signal):
     return "normal"
 
 
-def datos_esp32(nivel, led_nivel, magnitud, mensaje, network_quality):
+def datos_esp32(level, led_nivel, magnitud, mensaje, network_quality):
     if network_quality.get("state", network_quality.get("estado")) == "insufficient" and level == "normal":
         return {
             "sonar": False,
             "buzzer_segundos": 0,
             "led_nivel": 1,
             "estimated_magnitude": 0,
-            "nivel": "red_insuficiente",
+            "level": "red_insuficiente",
             "mensaje": "Fuentes insuficientes"
         }
 
@@ -189,7 +189,7 @@ def datos_esp32(nivel, led_nivel, magnitud, mensaje, network_quality):
             "buzzer_segundos": 5,
             "led_nivel": led_nivel,
             "estimated_magnitude": magnitud,
-            "nivel": level,
+            "level": level,
             "mensaje": mensaje
         }
 
@@ -199,7 +199,7 @@ def datos_esp32(nivel, led_nivel, magnitud, mensaje, network_quality):
             "buzzer_segundos": 0,
             "led_nivel": led_nivel,
             "estimated_magnitude": magnitud,
-            "nivel": level,
+            "level": level,
             "mensaje": mensaje
         }
 
@@ -208,12 +208,12 @@ def datos_esp32(nivel, led_nivel, magnitud, mensaje, network_quality):
         "buzzer_segundos": 0,
         "led_nivel": 0,
         "estimated_magnitude": 0,
-        "nivel": "normal",
+        "level": "normal",
         "mensaje": "normal"
     }
 
 
-def led_por_nivel(nivel):
+def led_por_nivel(level):
     if level == "experimental_critical":
         return 10
     if level == "internal_notice":
@@ -424,7 +424,7 @@ class AdaptiveSeedLinkReader(EasySeedLinkClient):
         )
 
         network_quality = calculate_network_quality(self.sensor_states)
-        led = led_por_nivel(nivel)
+        led = led_por_nivel(level)
 
         if level == "experimental_critical":
             mensaje = "Experimental critical state: several independent stations confirming"
@@ -435,7 +435,7 @@ class AdaptiveSeedLinkReader(EasySeedLinkClient):
         else:
             mensaje = "normal"
 
-        esp32 = datos_esp32(nivel, led, magnitud_max, mensaje, network_quality)
+        esp32 = datos_esp32(level, led, magnitud_max, mensaje, network_quality)
 
         zone = {
             "state": level,
