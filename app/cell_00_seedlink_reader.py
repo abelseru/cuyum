@@ -1,4 +1,5 @@
 import json
+import time
 import math
 from statistics import median
 from datetime import datetime, timezone
@@ -86,15 +87,24 @@ def magnitud_experimental(energia):
 
 
 def extraer_clave_trace(trace_id):
-    parts = trace_id.split(".")
-    if len(parts) < 4:
-        return trace_id
+    parts = str(trace_id).split(".")
 
-    network = parts[0]
-    estacion = partes[1]
-    channel = parts[3]
+    # ObsPy trace id usually looks like:
+    # NETWORK.STATION.LOCATION.CHANNEL
+    if len(parts) >= 4:
+        network = parts[0]
+        station = parts[1]
+        channel = parts[3]
+        return f"{network}.{station}.{channel}"
 
-    return f"{network}.{station}.{channel}"
+    # Fallback for already-normalized NETWORK.STATION.CHANNEL ids.
+    if len(parts) >= 3:
+        network = parts[0]
+        station = parts[1]
+        channel = parts[2]
+        return f"{network}.{station}.{channel}"
+
+    return str(trace_id)
 
 
 def sensor_config_key(sensor):
