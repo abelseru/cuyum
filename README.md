@@ -111,3 +111,8 @@ Ver `docs/language.md`.
 ## Estado del proyecto
 
 Cuyum v1.2 es software experimental para educación, observación y validación técnica. No debe interpretarse como un sistema oficial de alerta sísmica.
+
+## Licencia
+
+Cuyum se distribuye bajo GNU General Public License v3.0 or later (GPL-3.0-or-later).
+Ver el archivo `LICENSE`.
