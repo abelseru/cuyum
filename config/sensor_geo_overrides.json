@@ -1,48 +1,48 @@
 {
-  "description": "Coordenadas para visualización pública de sensores heredados que no traen lat/lon en el estado vivo. No se usan para decidir alertas ni scoring.",
+  "description": "Coordinates used for public visualization when a sensor does not provide lat/lon in live state. They are not used for alerts or scoring.",
   "updated_at": "2026-07-15",
   "sensors": {
     "C1.MT04.BHZ": {
       "lat": -33.273,
       "lon": -70.29,
-      "source": "visualizacion_publica_aproximada",
+      "source": "public_visualization_approximate",
       "name": "Olivares",
-      "localidad": "Olivares"
+      "locality": "Olivares"
     },
     "C1.MT08.BHZ": {
       "lat": -33.4052,
       "lon": -70.1334,
-      "source": "visualizacion_publica_aproximada",
+      "source": "public_visualization_approximate",
       "name": "Bocatoma Colorado",
-      "localidad": "Bocatoma Colorado"
+      "locality": "Bocatoma Colorado"
     },
     "C1.MT13.BHZ": {
       "lat": -33.7437,
       "lon": -70.2861,
-      "source": "visualizacion_publica_aproximada",
+      "source": "public_visualization_approximate",
       "name": "San Alfonso",
-      "localidad": "San Alfonso"
+      "locality": "San Alfonso"
     },
     "C1.VA03.BHZ": {
       "lat": -32.804,
       "lon": -70.58,
-      "source": "visualizacion_publica_aproximada",
+      "source": "public_visualization_approximate",
       "name": "San Esteban",
-      "localidad": "San Esteban"
+      "locality": "San Esteban"
     },
     "WA.ZON.HHZ": {
       "lat": -31.5375,
       "lon": -68.5364,
-      "source": "visualizacion_publica_aproximada",
+      "source": "public_visualization_approximate",
       "name": "San Juan / IGSV",
-      "localidad": "San Juan / IGSV"
+      "locality": "San Juan / IGSV"
     },
     "RI.LPCA.EHZ": {
       "lat": -33.466,
       "lon": -67.55,
-      "source": "visualizacion_publica_aproximada",
+      "source": "public_visualization_approximate",
       "name": "La Paz / INPRES",
-      "localidad": "La Paz / INPRES"
+      "locality": "La Paz / INPRES"
     }
   }
 }

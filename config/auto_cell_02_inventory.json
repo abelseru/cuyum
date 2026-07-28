@@ -1,62 +1,62 @@
 {
-  "cell_id": "auto_cell_01",
-  "label": "West",
-  "direction": "West",
+  "cell_id": "auto_cell_02",
+  "label": "Southwest",
+  "direction": "Southwest",
   "generated_by": "live_inventory_organizer",
-  "generated_at": "2026-07-27T21:52:04.126879",
+  "generated_at": "2026-07-27T21:52:04.127549",
   "center": {
-    "label": "West",
-    "lat": -33.070219,
-    "lon": -71.056312
+    "label": "Southwest",
+    "lat": -33.876387,
+    "lon": -70.94953
   },
   "sensors": [
     {
-      "network": "C",
-      "station": "ROC1",
+      "network": "C1",
+      "station": "BO04",
       "channel": "BHZ",
-      "name": "ROC1",
-      "lat": -32.9756,
-      "lon": -71.0156,
+      "name": "La Punta",
+      "lat": -33.98884,
+      "lon": -70.60902,
       "role": "regional_observer",
       "can_confirm": true,
       "can_trigger": false,
-      "distance_km": 202.7,
+      "distance_km": 204.2,
       "state": "active",
       "source": "fdsn_station_service",
       "source_provider": "IRIS",
-      "direction": "West"
+      "direction": "Southwest"
     },
     {
       "network": "C1",
-      "station": "MT07",
+      "station": "MT09",
       "channel": "BHZ",
-      "name": "Cerro El Roble",
-      "lat": -32.975956,
-      "lon": -71.015636,
+      "name": "Talagante",
+      "lat": -33.77622,
+      "lon": -70.98867,
       "role": "regional_observer",
       "can_confirm": true,
       "can_trigger": false,
-      "distance_km": 202.7,
+      "distance_km": 222.1,
       "state": "active",
       "source": "fdsn_station_service",
       "source_provider": "IRIS",
-      "direction": "West"
+      "direction": "Southwest"
     },
     {
       "network": "C1",
-      "station": "MT02",
+      "station": "MT01",
       "channel": "BHZ",
-      "name": "Curacavi",
-      "lat": -33.2591,
-      "lon": -71.1377,
+      "name": "Daracena",
+      "lat": -33.8641,
+      "lon": -71.2509,
       "role": "regional_observer",
       "can_confirm": true,
       "can_trigger": false,
-      "distance_km": 217.5,
+      "distance_km": 248.2,
       "state": "active",
       "source": "fdsn_station_service",
       "source_provider": "IRIS",
-      "direction": "West"
+      "direction": "Southwest"
     }
   ]
 }

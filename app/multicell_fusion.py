@@ -8,19 +8,18 @@ OBSERVATION_MODE_NO_SOUND = True
 
 LOCAL_STATE_FILE = "runtime/state_cell_00_seedlink.json"
 AUTO_CELL_01_STATE_FILE = "runtime/auto_cell_01_state.json"
-AUTO_CELLS_RUNTIME_FILE = "cuyum_runtime_cells.json"
 
-# No debe ser demasiado agresivo: algunos lectores escriben por tandas.
+# Do not make this too aggressive: some readers write in batches.
 # If this time is exceeded, the cell is not considered fresh for decisions.
 MAX_CELL_AGE_SECONDS = 180
 
 CELL_CLASS_LABELS = {
-    "strong_cell": "alta",
-    "good_cell": "buena",
-    "minimal_cell": "mínima",
-    "single_station": "escucha",
-    "stale_cell": "sin datos recientes",
-    "blind_zone": "sin cobertura",
+    "strong_cell": "strong",
+    "good_cell": "good",
+    "minimal_cell": "minimal",
+    "single_station": "single station",
+    "stale_cell": "no recent data",
+    "blind_zone": "no coverage",
 }
 
 CLASS_RANK = {
@@ -33,15 +32,15 @@ CLASS_RANK = {
 }
 
 
-def ahora_iso():
+def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
 
-def leer_json(ruta):
-    if not os.path.exists(ruta):
+def read_json(path):
+    if not os.path.exists(path):
         return None
     try:
-        with open(ruta, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception:
         return None
@@ -115,9 +114,9 @@ def _as_float(value, default=0.0):
         return default
 
 
-def _quality_estado(quality):
+def _quality_state(quality):
     if isinstance(quality, dict):
-        return str(quality.get("state", quality.get("estado", "unknown")))
+        return str(quality.get("state", "unknown"))
     if quality is None:
         return "unknown"
     return str(quality)
@@ -132,34 +131,13 @@ def _ratio_max_from_sensors(sensors):
 
 
 def _english_code(value):
-    mapping = {
-        "multicelda_fuerte": "high_multicell",
-        "multicelda_parcial": "partial_multicell",
-        "remota_sin_local": "remote_only",
-        "degradada": "degraded",
-        "buena": "good",
-        "alta": "high",
-        "regular": "regular",
-        "desconocida": "unknown",
-        "strong": "strong",
-        "good": "good",
-        "minimum_viable": "minimum_viable",
-        "weak_context": "weak_context",
-        "insufficient": "insufficient",
-        "no_data": "no_data",
-        "unknown": "unknown",
-        "sin_estado": "no_state",
-        "sin cobertura": "blind_zone",
-        "sin datos recientes": "stale",
-        "observacion_sin_sonido": "observation_without_sound",
-    }
-    return mapping.get(value, value)
+    return value
 
 
 def _max_effective_warning(sensors):
     values = []
     for sensor in (sensors or {}).values():
-        values.append(_as_float(_pick(sensor, "effective_warning_seconds", "aviso_util", 0), 0))
+        values.append(_as_float(sensor.get("effective_warning_seconds", 0), 0))
     return round(max(values), 1) if values else 0
 
 
@@ -171,12 +149,12 @@ def _best_direction_from_sensors(sensors):
             directions.append(d)
     if not directions:
         return ""
-    # Si hay empate, preferir la dirección del primer sensor de mayor prioridad, ya que suele ser el principal.
+    # On ties, prefer the direction of the highest-priority sensor, which is usually the primary one.
     counts = Counter(directions)
     most_common = counts.most_common()
     if most_common and most_common[0][1] > 1:
         return most_common[0][0]
-    for sensor in sorted((sensors or {}).values(), key=lambda x: _as_int(_pick(x, "priority", "prioridad", 999), 999)):
+    for sensor in sorted((sensors or {}).values(), key=lambda x: _as_int(x.get("priority", 999), 999)):
         d = str(sensor.get("direction", "")).strip().upper()
         if d:
             return d
@@ -184,42 +162,42 @@ def _best_direction_from_sensors(sensors):
 
 
 def _sanitize_level(level):
-    """Nunca exponer 'urgente' por un solo sensor. Biblioteca escolar: lenguaje prudente."""
+    """Never expose an urgent state from a single sensor. Use conservative wording."""
     value = str(level or "normal")
     low = value.lower()
-    if "urgente" in low:
-        return "observacion"
-    if low in ("atención_local", "atención", "high", "critico", "alto"):
-        return "vigilancia"
+    if "urgent" in low:
+        return "observation"
+    if low in ("local_attention", "attention", "high", "critical"):
+        return "watch"
     return value
 
 
 def _safe_message(message, confirming_stations=0, sound=False):
-    """Mensajes seguros para pantalla/ESP32: sin 'urgente' ni tono de servicio técnico."""
+    """Safe display/node messages without urgent or technical-service wording."""
     msg = str(message or "normal")
     low = msg.lower()
-    if "urgente" in low or "anomal" in low or "atención" in low:
+    if "urgent" in low or "anomal" in low or "attention" in low:
         if sound:
-            return "Señal en verificación por la red Cuyum"
+            return "Signal under verification by the Cuyum network"
         if _as_int(confirming_stations, 0) >= 2:
-            return "Señal local en verificación"
+            return "Local signal under verification"
         if _as_int(confirming_stations, 0) == 1:
-            return "Señal aislada sin confirmación"
-        return "Observación de red sin confirmación"
+            return "Isolated signal without confirmation"
+        return "Network observation without confirmation"
     return msg
 
 
-def _display_state_label(estado, confirming_stations=0, sound=False):
-    low = str(estado or "normal").lower()
+def _display_state_label(state, confirming_stations=0, sound=False):
+    low = str(state or "normal").lower()
     if sound:
-        return "aviso"
-    if "urgente" in low or "atención" in low or "anomal" in low:
+        return "warning"
+    if "urgent" in low or "attention" in low or "anomal" in low:
         if _as_int(confirming_stations, 0) >= 2:
-            return "verificación"
-        return "observación"
+            return "verification"
+        return "observation"
     if low in ("normal", "ok"):
         return "normal"
-    return _sanitize_level(estado)
+    return _sanitize_level(state)
 
 
 def classify_cell(active_sensors, fresh=True):
@@ -255,17 +233,17 @@ def _base_cell(cell_id, label, role, source_file):
         "source_file": source_file,
         "fresh": False,
         "age_seconds": None,
-        "estado": "sin_estado",
-        "raw_estado": "sin_estado",
-        "display_state_label": "sin datos",
+        "state": "no_state",
+        "raw_state": "no_state",
+        "display_state_label": "no data",
         "flag": False,
-        "calidad_red": "sin_estado",
-        "sensores_activos": 0,
-        "sensores_calibrados": 0,
-        "anticipacion_activos": 0,
-        "confirmacion_activos": 0,
-        "estaciones_confirmando": 0,
-        "estaciones_confirmando_lista": [],
+        "network_quality": "no_state",
+        "active_sensors": 0,
+        "calibrated_sensors": 0,
+        "anticipation_active": 0,
+        "confirmation_active": 0,
+        "confirming_stations": 0,
+        "confirming_station_list": [],
         "ratio_max": 0,
         "effective_warning_seconds": 0,
         "cell_class": "stale_cell",
@@ -273,26 +251,26 @@ def _base_cell(cell_id, label, role, source_file):
         "can_raise_watch": False,
         "can_trigger_anticipation": False,
         "feeds_esp32": False,
-        "ultima_actualizacion": None,
+        "updated_at": None,
     }
 
 
 def _finish_cell(cell):
-    cell_class = classify_cell(cell.get("sensores_activos", 0), cell.get("fresh", False))
+    cell_class = classify_cell(cell.get("active_sensors", 0), cell.get("fresh", False))
     cell["cell_class"] = cell_class
     cell["cell_class_label"] = CELL_CLASS_LABELS.get(cell_class, cell_class)
     cell["can_raise_watch"] = cell_can_raise_watch(cell_class)
     cell["can_trigger_anticipation"] = cell_can_trigger_anticipation(cell_class)
     cell["display_state_label"] = _display_state_label(
-        cell.get("estado"), cell.get("estaciones_confirmando", 0), False
+        cell.get("state"), cell.get("confirming_stations", 0), False
     )
 
-    cell["state"] = cell.get("estado")
-    cell["active_sensors"] = _as_int(cell.get("active_sensors", cell.get("sensores_activos", 0)), 0)
-    cell["calibrated_sensors"] = _as_int(cell.get("calibrated_sensors", cell.get("sensores_calibrados", 0)), 0)
-    cell["confirming_stations"] = _as_int(cell.get("confirming_stations", cell.get("estaciones_confirmando", 0)), 0)
-    cell["confirming_station_list"] = cell.get("confirming_station_list", cell.get("estaciones_confirmando_lista", []))
-    cell["network_quality"] = _english_code(cell.get("network_quality", cell.get("calidad_red")))
+    cell["state"] = cell.get("state")
+    cell["active_sensors"] = _as_int(cell.get("active_sensors", cell.get("active_sensors", 0)), 0)
+    cell["calibrated_sensors"] = _as_int(cell.get("calibrated_sensors", 0), 0)
+    cell["confirming_stations"] = _as_int(cell.get("confirming_stations", cell.get("confirming_stations", 0)), 0)
+    cell["confirming_station_list"] = cell.get("confirming_station_list", [])
+    cell["network_quality"] = _english_code(cell.get("network_quality"))
 
     return cell
 
@@ -302,29 +280,29 @@ def _local_cell(local_data):
     if not local_data:
         return _finish_cell(cell)
 
-    zona = (local_data or {}).get("zones", {}).get("local_adaptive_zone", {}) or (local_data or {}).get("zonas", {}).get("cordillera_cuyo_adaptativa", {})
-    if not zona:
-        # Compatibilidad por si alguna versión vieja escribía el estado plano.
-        zona = local_data or {}
+    zone = (local_data or {}).get("zones", {}).get("local_adaptive_zone", {})
+    if not zone:
+        # Flat state input.
+        zone = local_data or {}
 
-    quality = zona.get("network_quality", zona.get("calidad_red", {}))
-    fresh, age = _is_fresh(zona.get("updated_at") or zona.get("ultima_actualizacion") or local_data.get("updated_at") or local_data.get("ultima_actualizacion"))
-    sensors = _pick_dict(zona, "sensors", "sensores")
-    raw_estado = zona.get("estado", (local_data.get("esp32", {}) or {}).get("nivel", "sin_estado"))
-    confirming_stations = _as_int(_pick(zona, "confirming_stations", "estaciones_confirmando", 0), 0)
+    quality = zone.get("network_quality", {})
+    fresh, age = _is_fresh(zone.get("updated_at") or local_data.get("updated_at"))
+    sensors = _pick_dict(zone, "sensors")
+    raw_state = zone.get("state", (local_data.get("esp32", {}) or {}).get("level", "no_state"))
+    confirming_stations = _as_int(zone.get("confirming_stations", 0), 0)
 
     active_sensor_items = [
         s for s in sensors.values()
-        if _pick(s, "sensor_state", "estado_sensor", s.get("state")) in ("activo", "active")
+        if s.get("sensor_state", s.get("state")) == "active"
     ]
     calibrated_sensor_items = [
         s for s in sensors.values()
-        if _pick(s, "calibrated", "calibrado", False)
+        if s.get("calibrated", False)
     ]
     validating_sensor_items = [
         s for s in active_sensor_items
-        if bool(_pick(s, "can_confirm", "puede_confirmar", False))
-        or bool(_pick(s, "can_trigger", "puede_disparar", False))
+        if bool(s.get("can_confirm", False))
+        or bool(s.get("can_trigger", False))
     ]
     observer_sensor_items = [
         s for s in active_sensor_items
@@ -332,20 +310,16 @@ def _local_cell(local_data):
     ]
 
     active_sensors_raw = _as_int(
-        _pick(
-            zona,
+        zone.get(
             "active_sensors",
-            "sensores_activos",
-            _pick(quality, "active_sensors", "sensores_activos", 0) if isinstance(quality, dict) else 0
+            quality.get("active_sensors", 0) if isinstance(quality, dict) else 0
         ),
         0
     )
     calibrated_sensors_raw = _as_int(
-        _pick(
-            zona,
+        zone.get(
             "calibrated_sensors",
-            "sensores_calibrados",
-            _pick(quality, "calibrated_sensors", "sensores_calibrados", 0) if isinstance(quality, dict) else 0
+            quality.get("calibrated_sensors", 0) if isinstance(quality, dict) else 0
         ),
         0
     )
@@ -356,52 +330,52 @@ def _local_cell(local_data):
     cell.update({
         "fresh": fresh,
         "age_seconds": age,
-        "raw_estado": raw_estado,
-        "estado": _sanitize_level(raw_estado),
-        "flag": bool(zona.get("flag", False)),
-        "calidad_red": _quality_estado(quality),
-        "sensores_activos": validating_sensors,
-        "sensores_calibrados": min(validating_sensors, calibrated_sensors_raw),
-        "sensores_activos_totales": active_sensors_raw,
-        "sensores_calibrados_totales": calibrated_sensors_raw,
-        "sensores_observadores": observer_sensors,
-        "anticipacion_activos": _as_int(quality.get("anticipacion_activos", 0) if isinstance(quality, dict) else zona.get("anticipacion_activos", 0)),
-        "confirmacion_activos": _as_int(quality.get("confirmacion_activos", 0) if isinstance(quality, dict) else zona.get("confirmacion_activos", 0)),
-        "estaciones_confirmando": confirming_stations,
-        "estaciones_confirmando_lista": _pick_list(zona, "confirming_station_list", "estaciones_confirmando_lista"),
-        "ratio_max": _as_float(_pick(zona, "ratio_max", None, 0), _ratio_max_from_sensors(sensors)),
+        "raw_state": raw_state,
+        "state": _sanitize_level(raw_state),
+        "flag": bool(zone.get("flag", False)),
+        "network_quality": _quality_state(quality),
+        "active_sensors": validating_sensors,
+        "calibrated_sensors": min(validating_sensors, calibrated_sensors_raw),
+        "total_active_sensors": active_sensors_raw,
+        "total_calibrated_sensors": calibrated_sensors_raw,
+        "observer_sensors": observer_sensors,
+        "anticipation_active": _as_int(quality.get("anticipation_active", 0) if isinstance(quality, dict) else zone.get("anticipation_active", 0)),
+        "confirmation_active": _as_int(quality.get("confirmation_active", 0) if isinstance(quality, dict) else zone.get("confirmation_active", 0)),
+        "confirming_stations": confirming_stations,
+        "confirming_station_list": zone.get("confirming_station_list", []),
+        "ratio_max": _as_float(_pick(zone, "ratio_max", None, 0), _ratio_max_from_sensors(sensors)),
         "effective_warning_seconds": 0,
         "feeds_esp32": True,
-        "ultima_actualizacion": zona.get("updated_at") or zona.get("ultima_actualizacion") or local_data.get("updated_at") or local_data.get("ultima_actualizacion"),
+        "updated_at": zone.get("updated_at") or local_data.get("updated_at"),
     })
-    cell["display_state_label"] = _display_state_label(raw_estado, confirming_stations, False)
+    cell["display_state_label"] = _display_state_label(raw_state, confirming_stations, False)
     return _finish_cell(cell)
 
 
 def _auto_cell_01(auto_data):
-    cell = _base_cell("auto_cell_01", "Célula automática 1", "early_warning", AUTO_CELL_01_STATE_FILE)
+    cell = _base_cell("auto_cell_01", "Automatic cell 1", "early_warning", AUTO_CELL_01_STATE_FILE)
     if not auto_data:
         return _finish_cell(cell)
 
-    fresh, age = _is_fresh(auto_data.get("updated_at", auto_data.get("ultima_actualizacion")))
-    sensors = _pick_dict(auto_data, "sensors", "sensores")
-    quality = auto_data.get("network_quality", auto_data.get("calidad_red", {}))
+    fresh, age = _is_fresh(auto_data.get("updated_at"))
+    sensors = _pick_dict(auto_data, "sensors")
+    quality = auto_data.get("network_quality", {})
 
     # Prefer top-level reader fields; if missing, use network_quality; if missing, count active/calibrated sensors.
-    active_sensors = _pick(auto_data, "active_sensors", "sensores_activos")
-    calibrated_sensors = _pick(auto_data, "calibrated_sensors", "sensores_calibrados")
+    active_sensors = auto_data.get("active_sensors")
+    calibrated_sensors = auto_data.get("calibrated_sensors")
     if active_sensors is None and isinstance(quality, dict):
-        active_sensors = _pick(quality, "active_sensors", "sensores_activos")
+        active_sensors = quality.get("active_sensors")
     if calibrated_sensors is None and isinstance(quality, dict):
-        calibrated_sensors = _pick(quality, "calibrated_sensors", "sensores_calibrados")
+        calibrated_sensors = quality.get("calibrated_sensors")
     if active_sensors is None:
-        active_sensors = sum(1 for s in sensors.values() if _pick(s, "sensor_state", "estado_sensor", s.get("state")) in ("activo", "active"))
+        active_sensors = sum(1 for s in sensors.values() if s.get("sensor_state", s.get("state")) == "active")
     if calibrated_sensors is None:
-        calibrated_sensors = sum(1 for s in sensors.values() if _pick(s, "calibrated", "calibrado", False))
+        calibrated_sensors = sum(1 for s in sensors.values() if s.get("calibrated", False))
 
     direction_label = _best_direction_from_sensors(sensors)
     short_label = direction_label or auto_data.get("cell_id", "C1")
-    raw_estado = auto_data.get("state", auto_data.get("estado", "normal"))
+    raw_state = auto_data.get("state", "normal")
 
     cell.update({
         "cell_id": auto_data.get("cell_id", "auto_cell_01"),
@@ -411,20 +385,20 @@ def _auto_cell_01(auto_data):
         "role": auto_data.get("role", "early_warning"),
         "fresh": fresh,
         "age_seconds": age,
-        "raw_estado": raw_estado,
-        "estado": _sanitize_level(raw_estado),
+        "raw_state": raw_state,
+        "state": _sanitize_level(raw_state),
         "flag": bool(auto_data.get("flag", False)),
-        "calidad_red": _quality_estado(quality),
-        "sensores_activos": _as_int(active_sensors, 0),
-        "sensores_calibrados": _as_int(calibrated_sensors, 0),
-        "anticipacion_activos": _as_int(active_sensors, 0),
-        "confirmacion_activos": 0,
-        "estaciones_confirmando": _as_int(auto_data.get("confirming_stations", auto_data.get("estaciones_confirmando", 0))),
-        "estaciones_confirmando_lista": auto_data.get("confirming_station_list", auto_data.get("estaciones_confirmando_lista", [])),
+        "network_quality": _quality_state(quality),
+        "active_sensors": _as_int(active_sensors, 0),
+        "calibrated_sensors": _as_int(calibrated_sensors, 0),
+        "anticipation_active": _as_int(active_sensors, 0),
+        "confirmation_active": 0,
+        "confirming_stations": _as_int(auto_data.get("confirming_stations", 0)),
+        "confirming_station_list": auto_data.get("confirming_station_list", []),
         "ratio_max": _ratio_max_from_sensors(sensors),
-        "effective_warning_seconds": _as_float(_pick(auto_data, "effective_warning_seconds", "aviso_util", 0), _max_effective_warning(sensors)) or _max_effective_warning(sensors),
+        "effective_warning_seconds": _as_float(auto_data.get("effective_warning_seconds", 0), _max_effective_warning(sensors)) or _max_effective_warning(sensors),
         "feeds_esp32": bool(auto_data.get("feeds_esp32", False)),
-        "ultima_actualizacion": auto_data.get("updated_at", auto_data.get("ultima_actualizacion")),
+        "updated_at": auto_data.get("updated_at"),
     })
     return _finish_cell(cell)
 
@@ -447,15 +421,15 @@ def _build_display_cells(cells):
             "role": c.get("role"),
             "class": c.get("cell_class"),
             "class_label": c.get("cell_class_label"),
-            "state": c.get("estado"),
+            "state": c.get("state"),
             "state_label": c.get("display_state_label", "normal"),
             "fresh": c.get("fresh"),
-            "sensors_active": _as_int(c.get("sensores_activos", 0), 0),
-            "sensors_calibrated": _as_int(c.get("sensores_calibrados", 0), 0),
-            "sensors_total_active": _as_int(c.get("sensores_activos_totales", c.get("sensores_activos", 0)), 0),
-            "sensors_total_calibrated": _as_int(c.get("sensores_calibrados_totales", c.get("sensores_calibrados", 0)), 0),
-            "observer_sensors": _as_int(c.get("sensores_observadores", 0), 0),
-            "confirming": _as_int(c.get("estaciones_confirmando", 0), 0),
+            "sensors_active": _as_int(c.get("active_sensors", 0), 0),
+            "sensors_calibrated": _as_int(c.get("calibrated_sensors", 0), 0),
+            "sensors_total_active": _as_int(c.get("total_active_sensors", c.get("active_sensors", 0)), 0),
+            "sensors_total_calibrated": _as_int(c.get("total_calibrated_sensors", c.get("calibrated_sensors", 0)), 0),
+            "observer_sensors": _as_int(c.get("observer_sensors", 0), 0),
+            "confirming": _as_int(c.get("confirming_stations", 0), 0),
             "ratio_max": _as_float(c.get("ratio_max", 0), 0),
             "can_trigger_anticipation": bool(c.get("can_trigger_anticipation", False)),
         }
@@ -468,18 +442,17 @@ def _build_display_cells(cells):
 
 def build_multicell_state():
     import glob
-    local_data = leer_json(LOCAL_STATE_FILE)
-    runtime = leer_json(AUTO_CELLS_RUNTIME_FILE)
+    local_data = read_json(LOCAL_STATE_FILE)
 
     local = _local_cell(local_data)
     auto_cells = []
     for state_path in sorted(glob.glob("runtime/auto_cell_*_state.json"))[:4]:
-        auto_data = leer_json(state_path)
+        auto_data = read_json(state_path)
         if auto_data:
             auto_cells.append(_auto_cell_01(auto_data))
     cells = [local] + auto_cells
 
-    active_cells = [c for c in cells if c.get("fresh") and _as_int(c.get("sensores_activos", 0)) > 0]
+    active_cells = [c for c in cells if c.get("fresh") and _as_int(c.get("active_sensors", 0)) > 0]
     active_early = [c for c in active_cells if c.get("role") == "early_warning" and c.get("can_raise_watch")]
     strong_cells = [c for c in active_cells if c.get("cell_class") == "strong_cell"]
     good_cells = [c for c in active_cells if c.get("cell_class") == "good_cell"]
@@ -492,9 +465,9 @@ def build_multicell_state():
     minimal_early = [c for c in active_early if c.get("cell_class") == "minimal_cell"]
     trigger_capable_early = [c for c in active_early if c.get("can_trigger_anticipation")]
 
-    total_active_sensors = sum(_as_int(c.get("sensores_activos", 0)) for c in active_cells)
-    total_calibrated_sensors = sum(_as_int(c.get("sensores_calibrados", 0)) for c in active_cells)
-    total_confirming_stations = sum(_as_int(c.get("estaciones_confirmando", 0)) for c in active_cells)
+    total_active_sensors = sum(_as_int(c.get("active_sensors", 0)) for c in active_cells)
+    total_calibrated_sensors = sum(_as_int(c.get("calibrated_sensors", 0)) for c in active_cells)
+    total_confirming_stations = sum(_as_int(c.get("confirming_stations", 0)) for c in active_cells)
     ratio_max = round(max([_as_float(c.get("ratio_max", 0)) for c in active_cells] or [0]), 2)
 
     local_active = local in active_cells
@@ -503,83 +476,83 @@ def build_multicell_state():
     if local_ok and strong_early:
         network_mode = "multicell"
         network_quality = "high_multicell"
-        network_label = "red multicelda alta"
+        network_label = "high multicell network"
     elif local_ok and (good_early or minimal_early):
         network_mode = "multicell_partial"
         network_quality = "partial_multicell"
-        network_label = "red multicelda parcial"
+        network_label = "partial multicell network"
     elif local_ok:
         network_mode = "local_only"
-        network_quality = local.get("calidad_red", "local")
-        network_label = "red local activa"
+        network_quality = local.get("network_quality", "local")
+        network_label = "active local network"
     elif active_early:
         network_mode = "remote_only"
-        network_quality = "remota_sin_local"
-        network_label = "solo zona remota activa"
+        network_quality = "remote_without_local"
+        network_label = "remote zone only"
     elif active_cells:
         network_mode = "partial"
-        network_quality = "parcial"
-        network_label = "red parcial"
+        network_quality = "partial"
+        network_label = "partial network"
     else:
         network_mode = "degraded"
-        network_quality = "degradada"
-        network_label = "red degradada"
+        network_quality = "degraded"
+        network_label = "degraded network"
 
     # Conservative rule: a minimal cell does not trigger by itself. Strong/good cells can raise experimental anticipation if internally confirmed.
     early_flags = [
         c for c in trigger_capable_early
-        if c.get("flag") and _as_int(c.get("estaciones_confirmando", 0)) >= 2
+        if c.get("flag") and _as_int(c.get("confirming_stations", 0)) >= 2
     ]
     minimal_watch_flags = [
         c for c in minimal_early
-        if c.get("flag") and _as_int(c.get("estaciones_confirmando", 0)) >= 2
+        if c.get("flag") and _as_int(c.get("confirming_stations", 0)) >= 2
     ]
 
     local_esp32 = (local_data or {}).get("esp32", {})
-    local_raw_sonar = bool(local_esp32.get("sonar", False))
-    local_confirming = _as_int(local.get("estaciones_confirmando", 0), 0)
-    local_flag = bool(local.get("fresh") and (local.get("flag") or local_raw_sonar))
+    local_raw_sound = bool(local_esp32.get("sound", False))
+    local_confirming = _as_int(local.get("confirming_stations", 0), 0)
+    local_flag = bool(local.get("fresh") and (local.get("flag") or local_raw_sound))
 
     event_level = "normal"
-    event_message = "normal multicelda" if network_mode.startswith("multicell") else "normal"
+    event_message = "normal multicell" if network_mode.startswith("multicell") else "normal"
     sound = False
-    buzzer_segundos = 0
-    led_nivel = 0
+    buzzer_seconds = 0
+    led_level = 0
 
     if local_flag:
-        # Un solo sensor con pico no es urgente ni atención. Cuyum lo informa con lenguaje bajo y sin sonido.
-        if local_raw_sonar:
-            event_level = "confirmacion_local"
-            event_message = _safe_message(local_esp32.get("mensaje"), local_confirming, sound=True)
+        # A single sensor peak is neither urgent nor an attention state. Report it quietly and without sound.
+        if local_raw_sound:
+            event_level = "local_confirmation"
+            event_message = _safe_message(local_esp32.get("message"), local_confirming, sound=True)
             sound = True
-            buzzer_segundos = _as_int(local_esp32.get("buzzer_segundos", 5), 5)
-            led_nivel = _as_int(local_esp32.get("led_nivel", 3), 3)
+            buzzer_seconds = _as_int(local_esp32.get("buzzer_seconds", 5), 5)
+            led_level = _as_int(local_esp32.get("led_level", 3), 3)
         elif local_confirming >= 2:
-            event_level = "vigilancia_local"
-            event_message = "Señal local en verificación"
+            event_level = "local_watch"
+            event_message = "Local signal under verification"
             sound = False
-            buzzer_segundos = 0
-            led_nivel = 1
+            buzzer_seconds = 0
+            led_level = 1
         else:
-            event_level = "observacion"
-            event_message = "Señal aislada sin confirmación"
+            event_level = "observation"
+            event_message = "Isolated signal without confirmation"
             sound = False
-            buzzer_segundos = 0
-            led_nivel = 0
+            buzzer_seconds = 0
+            led_level = 0
     elif early_flags:
         cell = early_flags[0]
         event_level = "multicell_anticipation"
-        event_message = f"{cell.get('short_label', cell.get('cell_id'))}: señal en verificación"
+        event_message = f"{cell.get('short_label', cell.get('cell_id'))}: signal under verification"
         sound = True
-        buzzer_segundos = 5
-        led_nivel = 2
+        buzzer_seconds = 5
+        led_level = 2
     elif minimal_watch_flags:
         cell = minimal_watch_flags[0]
         event_level = "multicell_watch"
-        event_message = f"{cell.get('short_label', cell.get('cell_id'))}: vigilancia de red"
+        event_message = f"{cell.get('short_label', cell.get('cell_id'))}: network watch"
         sound = False
-        buzzer_segundos = 0
-        led_nivel = 1
+        buzzer_seconds = 0
+        led_level = 1
 
     display_cells = _build_display_cells(cells)
     display_status = _display_state_label(event_level, total_confirming_stations, sound)
@@ -587,18 +560,18 @@ def build_multicell_state():
 
     if OBSERVATION_MODE_NO_SOUND:
         if event_level != "normal":
-            display_status = "observacion"
-            display_message = "Señal detectada"
+            display_status = "observation"
+            display_message = "Signal detected"
         sound = False
-        buzzer_segundos = 0
-        led_nivel = 1 if event_level != "normal" else 0
+        buzzer_seconds = 0
+        led_level = 1 if event_level != "normal" else 0
 
     return {
-        "sistema": "Cuyum",
-        "modo": "multicell_fusion_v1_2_display_cells",
+        "system": "Cuyum",
+        "mode": "multicell_fusion_v1_2_display_cells",
         "experimental": True,
-        "advertencia": "Red experimental. No reemplaza fuentes oficiales ni procedimientos institucionales.",
-        "ultima_actualizacion": ahora_iso(),
+        "warning": "Experimental network. It does not replace official sources or institutional procedures.",
+        "updated_at": now_iso(),
         "cell_policy": {
             "strong_cell_min_sensors": 3,
             "good_cell_min_sensors": 2,
@@ -606,7 +579,7 @@ def build_multicell_state():
             "single_station_min_sensors": 1,
             "minimal_cell_can_trigger_attention": False,
             "minimal_cell_can_raise_watch": False,
-            "single_sensor_event_policy": "observacion_sin_sonido",
+            "single_sensor_event_policy": "observation_no_sound",
         },
         "display": {
             "title": "Cuyum v1.2",
@@ -633,9 +606,6 @@ def build_multicell_state():
             "good_early_warning_cells": len(good_early),
             "minimal_early_warning_cells": len(minimal_early),
             "trigger_capable_early_warning_cells": len(trigger_capable_early),
-            "sensores_activos_total": total_active_sensors,
-            "sensores_calibrados_total": total_calibrated_sensors,
-            "estaciones_confirmando_total": total_confirming_stations,
             "total_active_sensors": total_active_sensors,
             "total_calibrated_sensors": total_calibrated_sensors,
             "total_confirming_stations": total_confirming_stations,
@@ -644,17 +614,13 @@ def build_multicell_state():
         "event": {
             "level": event_level,
             "message": display_message,
-            "sonar": sound,
-            "buzzer_segundos": buzzer_segundos,
-            "led_nivel": led_nivel,
             "sound": sound,
-            "buzzer_seconds": buzzer_segundos,
-            "led_level": led_nivel,
+            "buzzer_seconds": buzzer_seconds,
+            "led_level": led_level,
             "early_flags": [c.get("cell_id") for c in early_flags],
             "minimal_watch_flags": [c.get("cell_id") for c in minimal_watch_flags],
         },
         "cells": {c["cell_id"]: c for c in cells},
-        "runtime_cells_generated_at": (runtime or {}).get("generated_at"),
     }
 
 
@@ -668,48 +634,30 @@ def build_node_poll(node_id="node_01"):
     local = cells.get("cell_00", {})
     auto01 = cells.get("auto_cell_01", {})
 
-    respuesta = {
-        # Campos viejos: el ESP32 actual no se rompe.
+    response = {
+        # Canonical node payload.
         "node_id": node_id,
         "level": event["level"],
         "message": event["message"],
-        "sound": event.get("sound", event["sonar"]),
-        "buzzer_seconds": event.get("buzzer_seconds", event["buzzer_segundos"]),
-        "led_level": event.get("led_level", event["led_nivel"]),
+        "sound": event["sound"],
+        "buzzer_seconds": event["buzzer_seconds"],
+        "led_level": event["led_level"],
         "network_quality": net["quality"],
-        "active_sensors": net.get("total_active_sensors", net["sensores_activos_total"]),
-        "calibrated_sensors": net.get("total_calibrated_sensors", net["sensores_calibrados_total"]),
-        "total_confirming_stations": net.get("total_confirming_stations", net["estaciones_confirmando_total"]),
-        "cell_00_active_sensors": local.get("active_sensors", local.get("sensores_activos", 0)),
-        "auto_cell_01_active_sensors": auto01.get("active_sensors", auto01.get("sensores_activos", 0)),
+        "active_sensors": net["total_active_sensors"],
+        "calibrated_sensors": net["total_calibrated_sensors"],
+        "total_confirming_stations": net["total_confirming_stations"],
+        "cell_00_active_sensors": local.get("active_sensors", 0),
+        "auto_cell_01_active_sensors": auto01.get("active_sensors", 0),
         "auto_cell_01_warning_seconds": auto01.get("effective_warning_seconds", 0),
-
-        "sonar": event["sonar"],
-        "buzzer_segundos": event["buzzer_segundos"],
-        "led_nivel": event["led_nivel"],
-        "magnitud_estimada": 0,
-        "nivel": event["level"],
-        "mensaje": event["message"],
-        "calidad_red": net["quality"],
-        "sensores_activos": net["sensores_activos_total"],
-        "sensores_calibrados": net["sensores_calibrados_total"],
-        "anticipacion_activos": _as_int(local.get("anticipacion_activos", 0)) + sum(
-            _as_int(c.get("sensores_activos", 0))
-            for c in cells.values()
-            if c.get("role") == "early_warning" and c.get("fresh") and c.get("can_raise_watch")
-        ),
-        "confirmacion_activos": _as_int(local.get("confirmacion_activos", 0)),
-        "estaciones_confirmando": net["estaciones_confirmando_total"],
         "ratio_max": net["ratio_max"],
-        "ultima_actualizacion": fused["ultima_actualizacion"],
 
-        # Portable fields for ESP32 multicell compatibility.
+        # Multicell display fields.
         "display": display,
         "display_cells": display_cells,
         "display_status": display.get("status", event["level"]),
         "display_message": display.get("message", event["message"]),
 
-        # New multicell fields: the current ESP32 sketch ignores them; the next sketch can display them.
+        # Multicell network fields.
         "network_mode": net["mode"],
         "network_label": net["label"],
         "cells_configured": net["cells_configured"],
@@ -726,18 +674,13 @@ def build_node_poll(node_id="node_01"):
         "trigger_capable_early_warning_cells": net["trigger_capable_early_warning_cells"],
         "multicell_message": event["message"],
 
-        # Compatibilidad temporal: campos específicos existentes. No usarlos en firmware portable nuevo.
-        "cell_00_estado": local.get("estado"),
+        # Cell-specific diagnostic fields.
         "cell_00_class": local.get("cell_class"),
         "cell_00_class_label": local.get("cell_class_label"),
         "cell_00_fresh": local.get("fresh"),
-        "cell_00_sensores_activos": local.get("sensores_activos", 0),
 
-        "auto_cell_01_estado": auto01.get("estado"),
         "auto_cell_01_class": auto01.get("cell_class"),
         "auto_cell_01_class_label": auto01.get("cell_class_label"),
         "auto_cell_01_fresh": auto01.get("fresh"),
-        "auto_cell_01_sensores_activos": auto01.get("sensores_activos", 0),
-        "auto_cell_01_aviso_util": auto01.get("effective_warning_seconds", 0),
     }
-    return respuesta
+    return response

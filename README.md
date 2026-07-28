@@ -1,11 +1,50 @@
 # Cuyum v1.2
 
-Cuyum es un sistema experimental de monitoreo sísmico escolar basado en lectores SeedLink, fusión multicelda, archivos JSON locales, monitor web y salida para nodos ESP32.
+Cuyum es un sistema experimental de monitoreo sísmico multicelda basado en datos SeedLink.
+
+Escucha estaciones sísmicas remotas, organiza sensores alrededor de un centro geográfico, mantiene estado vivo local, fusiona información de varias celdas y publica un monitor web junto con salidas JSON para visualización y nodos externos.
+
+> Cuyum no reemplaza fuentes sísmicas oficiales, sistemas certificados de alerta temprana ni procedimientos institucionales de emergencia.
+
+## Características
+
+- Lectura en vivo mediante SeedLink.
+- Celda local y hasta cuatro celdas regionales.
+- Organización automática de sensores según ubicación.
+- Evaluación de disponibilidad y latencia.
+- Fusión multicelda.
+- Registro reciente de eventos.
+- Monitor web.
+- Salida JSON.
+- Interfaces para nodos y ESP32.
+- Recentrado geográfico del sistema.
+
+## Requisitos
+
+- Linux / Xubuntu
+- Python 3.13
+- ObsPy 1.5.0
+- conexión a Internet para servicios FDSN y SeedLink
+
+## Instalación
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
 
 ## Arranque
 
 ```bash
 ./start_cuyum_v1_2.sh
+```
+
+Monitor local:
+
+```text
+http://127.0.0.1:5050/app
 ```
 
 ## Detención
@@ -14,54 +53,61 @@ Cuyum es un sistema experimental de monitoreo sísmico escolar basado en lectore
 ./stop_cuyum_v1_2.sh
 ```
 
-## Monitor
+## Recentrar Cuyum
 
-Local:
-
-```text
-http://127.0.0.1:5050/app
+```bash
+./scripts/cuyum_recenter_live.sh "Mendoza" -32.8895 -68.8458
 ```
 
-Red local:
+## Estado multicelda
 
-```text
-http://192.168.1.37:5050/app
+```bash
+./scripts/show_multicell_status_v1_2.sh
 ```
 
 ## Rutas principales
 
+Públicas:
+
 ```text
-/app                 Monitor humano
-/json                Estado vivo completo para la app y depuración
-/reg                 Registros recientes
-/api/node/poll       Consulta para nodo ESP32
-/api/esp32/poll      Consulta compatible para ESP32
-/health              Estado básico del servidor
+/app
+/json
+/reg
 ```
 
-## Estructura del proyecto
+Internas / dispositivos:
+
+```text
+/health
+/api/node/poll?node_id=node_01
+/api/esp32/poll?node_id=node_01
+/api/network/state
+/api/cells/<cell_id>
+```
+
+## Estructura
 
 ```text
 cuyum_v_1_2/
-├── app/              Código Python del servidor, fusión, lectores y auditoría
-├── config/           Inventarios, catálogos y configuración editable
-├── runtime/          Estado vivo generado por Cuyum
-├── runtime_logs/     Logs de ejecución local
-├── static/           CSS, JS, logo y recursos del monitor
-├── templates/        HTML del monitor
-├── scripts/          Herramientas auxiliares
-├── docs/             Documentación
-├── tools/            Utilidades de laboratorio
+├── app/
+├── config/
+├── docs/
+├── scripts/
+├── static/
+├── templates/
+├── requirements.txt
 ├── start_cuyum_v1_2.sh
 └── stop_cuyum_v1_2.sh
 ```
 
-## Contrato actual
+`runtime/`, `runtime_logs/`, entornos virtuales, backups y archivos de desarrollo local no forman parte del repositorio.
 
-Las rutas públicas canónicas son `/app`, `/json` y `/reg`.
+## Idioma técnico
 
-Las rutas antiguas `/live`, `/api/public/live`, `/api/v1/live`, `/estado.json`, `/inventario.json` y `/sensores.json` fueron retiradas del servidor principal.
+El núcleo técnico usa inglés para variables, estados, contratos JSON y logs. La interfaz para usuarios puede presentar traducciones al español.
 
-## Nota de uso
+Ver `docs/language.md`.
 
-Cuyum v1.2 es experimental. Los datos se usan para observación, aprendizaje, validación técnica y visualización escolar. No reemplaza fuentes oficiales ni procedimientos institucionales.
+## Estado del proyecto
+
+Cuyum v1.2 es software experimental para educación, observación y validación técnica. No debe interpretarse como un sistema oficial de alerta sísmica.

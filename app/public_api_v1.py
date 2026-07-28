@@ -4,7 +4,7 @@ def clean_sensor(sensor):
         "cell_id": sensor.get("cell_id"),
         "cell_label": sensor.get("cell_label"),
         "name": sensor.get("name"),
-        "locality": sensor.get("locality") or sensor.get("localidad"),
+        "locality": sensor.get("locality"),
         "network": sensor.get("network"),
         "station": sensor.get("station"),
         "channel": sensor.get("channel"),
@@ -67,7 +67,7 @@ def build_public_v1(raw):
         "status": {
             "level": alert.get("level") or display.get("status") or "normal",
             "label": display.get("status") or "normal",
-            "message": normalize_event_summary(display.get("message") or alert.get("message") or "sin señales relevantes"),
+            "message": normalize_event_summary(display.get("message") or alert.get("message") or "no relevant signals"),
             "sound": bool(display.get("sound") or alert.get("sound")),
             "buzzer_seconds": alert.get("buzzer_seconds") or 0,
         },
@@ -91,57 +91,34 @@ def build_public_v1(raw):
     }
 
 def normalize_event_level(level):
-    mapping = {
-        "normal": "normal",
-        "movimiento_posible": "possible_motion",
-        "senal_aislada": "isolated_signal",
-        "señal_aislada": "isolated_signal",
-        "senal_compartida": "shared_signal",
-        "señal_compartida": "shared_signal",
-        "confirmacion_local": "local_confirmation",
-        "observacion": "observation",
-        "aviso": "attention",
-        "attention": "attention",
-        "simulation": "simulation",
-    }
     if level is None:
         return None
-    return mapping.get(str(level), str(level))
+
+    value = str(level).strip()
+
+    allowed = {
+        "normal",
+        "observation",
+        "watch",
+        "warning",
+        "availability",
+        "network_state",
+        "shared_signal",
+        "isolated_signal",
+        "local_watch",
+        "local_confirmation",
+        "multicell_watch",
+        "multicell_anticipation",
+        "simulation",
+    }
+
+    return value if value in allowed else value
 
 
 def normalize_event_summary(summary):
-    if not summary:
-        return summary
-
-    text = str(summary)
-
-    replacements = {
-        "Aviso de llegada": "Atención",
-        "aviso de llegada": "atención",
-        "movimiento posible": "señal en observación",
-        "Movimiento posible": "Señal en observación",
-        "shared signal from nearby sensors": "Señal compartida por sensores cercanos",
-        "isolated signal": "Señal aislada en observación",
-        "local confirmation": "Confirmación local en observación",
-        "normal": "sin señales relevantes",
-        "normal multicelda": "sin señales relevantes",
-        "senal": "señal",
-    }
-
-    replacements.update({
-        "señal aislada sin confirmación": "Señal aislada en observación",
-        "señal aislada intensa": "Señal aislada en observación",
-        "señal coincidente en una zona": "Señal coincidente en una zona",
-        "señal compartida por sensores cercanos": "Señal compartida por sensores cercanos",
-        "SO: señal en verificación": "Señal en verificación por la red Cuyum",
-        "Experimental critical state: several independent stations confirming": "Señal en verificación por la red Cuyum",
-        "sensor sin datos": "Sensor sin datos",
-        "sensor recuperado": "Sensor recuperado",
-    })
-    for old, new in replacements.items():
-        text = text.replace(old, new)
-
-    return text
+    if summary is None:
+        return None
+    return str(summary)
 
 
 def clean_event(event):
@@ -156,13 +133,13 @@ def clean_event(event):
     if cell_id == "cell_01":
         cell_id = "auto_cell_01"
         if not cell_label or cell_label == "Local":
-            cell_label = "Zona anticipatoria"
+            cell_label = "Anticipation cell"
     elif cell_id == "cell_00":
         cell_label = cell_label or "Local"
     sensor_id = event.get("sensor_id") or sensor.get("id")
     sensor_label = event.get("sensor_name") or sensor.get("name")
     station = event.get("station") or sensor.get("station")
-    locality = event.get("localidad") or event.get("locality") or sensor.get("locality")
+    locality = event.get("locality") or sensor.get("locality")
 
     lat = event.get("lat")
     lon = event.get("lon")
@@ -188,7 +165,7 @@ def clean_event(event):
         "sensor_id": sensor_id,
         "source": source,
         "sound": bool(event.get("sound", False)),
-        "buzzer_seconds": event.get("buzzer_seconds") or event.get("buzzer_segundos") or 0,
+        "buzzer_seconds": event.get("buzzer_seconds") or 0,
     }
 
     if cell_label:

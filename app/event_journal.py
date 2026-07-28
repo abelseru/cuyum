@@ -9,9 +9,6 @@ STATE_FILE = "runtime/event_journal_state.json"
 SENSOR_GEO_OVERRIDES_FILE = "config/sensor_geo_overrides.json"
 LOCAL_STATE_FILE = "runtime/state_cell_00_seedlink.json"
 AUTO_CELL_01_STATE_FILE = "runtime/auto_cell_01_state.json"
-RUNTIME_CELLS_FILE = "cuyum_runtime_cells.json"
-AUTO_INVENTORY_FILE = "config/auto_inventory_cells.json"
-INVENTORY_AUTO_CELL_01_FILE = "config/auto_cell_01_inventory.json"
 DEFAULT_RETENTION_DAYS = 31
 DEFAULT_MAX_LINES = 5000
 
@@ -70,7 +67,7 @@ def read_config():
 
 
 def _line_timestamp(item):
-    return parse_time(item.get("timestamp") or item.get("updated_at") or item.get("ultima_actualizacion"))
+    return parse_time(item.get("timestamp") or item.get("updated_at"))
 
 
 def trim_jsonl(path=EVENTS_FILE, days=None, max_lines=None):
@@ -152,9 +149,9 @@ def append_event(event, dedupe_key=None, min_interval_seconds=0):
 def _safe_cell_label(cell_id):
     if cell_id in ("cell_00", "cell_01"):
         return "Local"
-    if cell_id == "auto_cell_01":
-        return "Suroeste"
-    return cell_id or "Zona"
+    if cell_id == "cell_00":
+        return "Local"
+    return cell_id or "Zone"
 
 
 
@@ -167,14 +164,16 @@ def _as_float(value, default=None):
         return default
 
 
-def _sensor_key(red=None, estacion=None, canal=None, code=None, clave=None):
-    if clave:
-        return str(clave)
+def _sensor_key(network=None, station=None, channel=None, code=None, key=None):
+    if key:
+        return str(key)
     if code:
         return str(code)
-    parts = [red, estacion, canal]
+
+    parts = [network, station, channel]
     if all(parts):
-        return f"{red}.{estacion}.{canal}"
+        return f"{network}.{station}.{channel}"
+
     return ""
 
 
@@ -182,104 +181,111 @@ def _sensor_geo_overrides():
     data = read_json(SENSOR_GEO_OVERRIDES_FILE, {}) or {}
     sensors = data.get("sensors", {}) if isinstance(data, dict) else {}
     out = {}
+
     for key, value in sensors.items():
         lat = _as_float(value.get("lat"), None)
         lon = _as_float(value.get("lon"), None)
         name = value.get("name") or key
-        locality = value.get("localidad") or value.get("locality") or name
+        locality = value.get("locality") or name
         source = value.get("source") or "sensor_geo_overrides"
+
         item = {
             "id": str(key),
             "name": name,
             "locality": locality,
             "location_source": source,
-            "approx_location": bool(value.get("approx_location", True)) or "aproximada" in str(source).lower(),
+            "approx_location": bool(value.get("approx_location", True)),
         }
+
         if lat is not None and lon is not None:
             item["lat"] = lat
             item["lon"] = lon
+
         out[str(key)] = item
+
     return out
 
 
 def _runtime_sensor_locations():
-    out = {}
-    runtime = read_json(RUNTIME_CELLS_FILE, {}) or read_json(AUTO_INVENTORY_FILE, {}) or {}
-    cells = runtime.get("cells", {}) if isinstance(runtime, dict) else {}
-    for cell_id, cell in cells.items():
-        for group_name in ("primary", "reserve_or_context", "reservas"):
-            for item in (cell.get(group_name, []) or []):
-                key = item.get("code") or _sensor_key(item.get("red"), item.get("estacion"), item.get("canal"))
-                if not key:
-                    continue
-                name = item.get("site") or item.get("nombre") or key
-                lat = _as_float(item.get("lat"), None)
-                lon = _as_float(item.get("lon"), None)
-                meta = {
-                    "id": key,
-                    "name": name,
-                    "locality": item.get("localidad") or item.get("locality") or name,
-                    "cell_id": cell_id,
-                    "location_source": "runtime",
-                    "approx_location": False,
-                    "provider": item.get("provider") or item.get("server_name"),
-                }
-                if lat is not None and lon is not None:
-                    meta["lat"] = lat
-                    meta["lon"] = lon
-                out[key] = meta
+    import glob
 
-    auto_inv = read_json(INVENTORY_AUTO_CELL_01_FILE, {}) or {}
-    for group_name in ("sensores", "reservas"):
-        for item in auto_inv.get(group_name, []) or []:
-            key = _sensor_key(item.get("red"), item.get("estacion"), item.get("canal"))
+    out = {}
+
+    for inv_path in sorted(glob.glob("config/auto_cell_*_inventory.json")):
+        inventory = read_json(inv_path, {}) or {}
+        cell_id = inventory.get("cell_id")
+
+        for sensor in inventory.get("sensors", []) or []:
+            key = _sensor_key(
+                sensor.get("network"),
+                sensor.get("station"),
+                sensor.get("channel"),
+            )
             if not key:
                 continue
-            name = item.get("nombre") or item.get("site") or key
-            lat = _as_float(item.get("lat"), None)
-            lon = _as_float(item.get("lon"), None)
+
+            name = sensor.get("name") or sensor.get("site") or key
+            lat = _as_float(sensor.get("lat"), None)
+            lon = _as_float(sensor.get("lon"), None)
+
             meta = {
                 "id": key,
                 "name": name,
-                "locality": item.get("localidad") or item.get("locality") or name,
-                "cell_id": auto_inv.get("cell_id", "auto_cell_01"),
-                "location_source": "runtime",
-                "approx_location": False,
-                "provider": item.get("provider") or item.get("server_name"),
+                "locality": sensor.get("locality") or name,
+                "cell_id": cell_id,
+                "location_source": "auto_cell_inventory",
+                "approx_location": bool(sensor.get("approx_location", False)),
+                "provider": sensor.get("provider") or inventory.get("server_name"),
             }
+
             if lat is not None and lon is not None:
                 meta["lat"] = lat
                 meta["lon"] = lon
+
             out[key] = meta
+
     return out
 
 
 def _live_sensor_names():
+    import glob
+
     out = {}
+
     local_state = read_json(LOCAL_STATE_FILE, {}) or {}
-    zona = (local_state.get("zonas", {}) or {}).get("cordillera_cuyo_adaptativa", {})
-    for key, sensor in (zona.get("sensores", {}) or {}).items():
-        sid = sensor.get("clave") or key
-        out[sid] = {
-            "id": sid,
-            "name": sensor.get("nombre") or sid,
-            "locality": sensor.get("localidad") or sensor.get("nombre") or sid,
+    local_zone = (
+        (local_state.get("zones") or {})
+        .get("local_adaptive_zone", {})
+    )
+
+    for key, sensor in (local_zone.get("sensors") or {}).items():
+        sensor_id = sensor.get("sensor_id") or sensor.get("key") or key
+        out[sensor_id] = {
+            "id": sensor_id,
+            "station": sensor.get("station"),
+            "name": sensor.get("name") or sensor_id,
+            "locality": sensor.get("locality") or sensor.get("name") or sensor_id,
             "cell_id": "cell_00",
-            "state": sensor.get("estado_sensor"),
-            "latency_seconds": _as_float(sensor.get("latencia_segundos"), None),
+            "state": sensor.get("sensor_state"),
+            "latency_seconds": _as_float(sensor.get("latency_seconds"), None),
         }
 
-    auto_state = read_json(AUTO_CELL_01_STATE_FILE, {}) or {}
-    for key, sensor in (auto_state.get("sensores", {}) or {}).items():
-        sid = sensor.get("clave") or key
-        out[sid] = {
-            "id": sid,
-            "name": sensor.get("nombre") or sid,
-            "locality": sensor.get("localidad") or sensor.get("nombre") or sid,
-            "cell_id": auto_state.get("cell_id", "auto_cell_01"),
-            "state": sensor.get("estado_sensor"),
-            "latency_seconds": _as_float(sensor.get("latencia_segundos"), None),
-        }
+    for state_path in sorted(glob.glob("runtime/auto_cell_*_state.json")):
+        auto_state = read_json(state_path, {}) or {}
+        cell_id = auto_state.get("cell_id")
+
+        for key, sensor in (auto_state.get("sensors") or {}).items():
+            sensor_id = sensor.get("sensor_id") or sensor.get("key") or key
+            out[sensor_id] = {
+                "id": sensor_id,
+                "station": sensor.get("station"),
+                "name": sensor.get("name") or sensor_id,
+                "locality": sensor.get("locality") or sensor.get("name") or sensor_id,
+                "cell_id": cell_id,
+                "state": sensor.get("sensor_state"),
+                "latency_seconds": _as_float(sensor.get("latency_seconds"), None),
+            }
+
     return out
 
 
@@ -294,7 +300,7 @@ def _sensor_metadata(sensor_id=None, station=None):
         candidates.extend([k for k in _sensor_geo_overrides().keys() if f".{st}." in k])
 
     combined = {}
-    # Orden: nombres vivos, runtime real, overrides visuales. Los últimos completan coordenadas faltantes.
+    # Priority: live names, runtime locations, then visual overrides to complete missing coordinates.
     for source in (_live_sensor_names(), _runtime_sensor_locations(), _sensor_geo_overrides()):
         for key in candidates:
             if key in source:
@@ -326,13 +332,13 @@ def _enrich_sensor_event(event):
         "location_source": meta.get("location_source"),
         "approx_location": bool(meta.get("approx_location", False)),
     }
-    # Limpiar valores nulos para que el JSON sea legible.
+    # Remove null values to keep the JSON compact and readable.
     sensor_info = {k: v for k, v in sensor_info.items() if v is not None}
     event.setdefault("sensor", sensor_info)
 
-    # Campos planos para lectura rápida y compatibilidad con herramientas simples.
+    # Flat fields keep simple consumers easy to use.
     event.setdefault("sensor_name", meta.get("name"))
-    event.setdefault("localidad", meta.get("locality"))
+    event.setdefault("locality", meta.get("locality"))
     if meta.get("lat") is not None and meta.get("lon") is not None:
         event.setdefault("lat", meta.get("lat"))
         event.setdefault("lon", meta.get("lon"))
@@ -359,16 +365,16 @@ def record_sensor_judgement(cell_id, sensor_id, station=None, ratio=None, compan
         return False
 
     if judgement_text == "confirmed_by_cell" or companions_int >= 2:
-        public_level = "movimiento_posible"
-        summary = "señal coincidente en una zona"
+        public_level = "watch"
+        summary = "coincident signal within one cell"
         throttle = 180
     elif judgement_text == "with_peer" or companions_int == 1:
-        public_level = "senal_compartida"
+        public_level = "shared_signal"
         summary = "shared signal from nearby sensors"
         throttle = 300
     else:
-        public_level = "senal_aislada"
-        summary = "señal aislada sin confirmación"
+        public_level = "isolated_signal"
+        summary = "isolated signal without confirmation"
         throttle = 900
 
     rounded_ratio = round(ratio_value, 2)
@@ -397,34 +403,39 @@ def record_sensor_judgement(cell_id, sensor_id, station=None, ratio=None, compan
 
 
 def record_sensor_state_change(cell_id, sensor_id, from_state, to_state):
-    """Sensor state: not published as an event except real loss/recovery.
+    """Publish only meaningful sensor loss and recovery transitions."""
+    from_text = str(from_state or "unknown").lower()
+    to_text = str(to_state or "unknown").lower()
 
-    La calibración, latencia alta y transiciones normales son telemetría interna.
-    Si se publican, el historial se vuelve ruidoso y deja de contar lo importante.
-    """
-    from_text = str(from_state or "sin_estado").lower()
-    to_text = str(to_state or "sin_estado").lower()
     if from_text == to_text:
         return False
 
-    estados_relevantes = {"caido", "caído", "sin_datos", "offline"}
-    from_bad = from_text in estados_relevantes
-    to_bad = to_text in estados_relevantes
-    if not (from_bad or to_bad):
+    unavailable_states = {
+        "down",
+        "no_data",
+        "offline",
+        "unavailable",
+    }
+
+    from_unavailable = from_text in unavailable_states
+    to_unavailable = to_text in unavailable_states
+
+    if not (from_unavailable or to_unavailable):
         return False
 
     event = {
         "type": "sensor_availability",
-        "public_level": "cobertura",
-        "summary": "sensor without data" if to_bad else "sensor recovered",
+        "public_level": "availability",
+        "summary": "sensor without data" if to_unavailable else "sensor recovered",
         "cell_id": cell_id,
         "cell_label": _safe_cell_label(cell_id),
         "sensor_id": sensor_id,
-        "from": str(from_state or "sin_estado"),
-        "to": str(to_state or "sin_estado"),
+        "from": str(from_state or "unknown"),
+        "to": str(to_state or "unknown"),
         "sound": False,
         "fingerprint": f"{from_text}->{to_text}",
     }
+
     return append_event(
         event,
         dedupe_key=f"sensor_availability:{cell_id}:{sensor_id}",
@@ -433,37 +444,35 @@ def record_sensor_state_change(cell_id, sensor_id, from_state, to_state):
 
 
 def record_fused_snapshot(fused):
-    """Record only real system decisions, not normal snapshots.
-
-    The live state is already in /api/public/live. If every startup is copied,
-    every sensor change and every coverage transition to history, the JSON
-    se llena de ruido. El historial debe contar hechos significativos.
-    """
+    """Record significant system decisions, not routine live-state snapshots."""
     if not isinstance(fused, dict):
         return False
+
     network = fused.get("network", {}) or {}
     event = fused.get("event", {}) or {}
     display = fused.get("display", {}) or {}
 
     level = str(event.get("level", "normal") or "normal").lower()
-    sound = bool(event.get("sonar", False))
+    sound = bool(event.get("sound", False))
     cells_active = network.get("cells_active")
-    sensors_active = network.get("sensores_activos_total")
+    sensors_active = network.get("sensors_active")
+    buzzer_seconds = event.get("buzzer_seconds", 0)
 
-    # Normalidad y cambios de cobertura comunes no son eventos públicos.
-    if level in ("normal", "observacion", "observación") and not sound:
+    # Normal observation and routine coverage changes are live state,
+    # not public historical events.
+    if level in ("normal", "observation") and not sound:
         return False
 
     return append_event({
         "type": "system_decision",
-        "public_level": "aviso" if sound else "movimiento_posible",
-        "summary": display.get("message") or event.get("message") or "decisión de Cuyum",
+        "public_level": "warning" if sound else "watch",
+        "summary": display.get("message") or event.get("message") or "Cuyum decision",
         "event_level": level,
         "sound": sound,
-        "buzzer_seconds": event.get("buzzer_segundos", 0),
+        "buzzer_seconds": buzzer_seconds,
         "cells_active": cells_active,
         "sensors_active": sensors_active,
-        "fingerprint": f"{level}|{sound}|{event.get('buzzer_segundos', 0)}",
+        "fingerprint": f"{level}|{sound}|{buzzer_seconds}",
     }, dedupe_key="system_decision", min_interval_seconds=60)
 
 
@@ -484,7 +493,7 @@ def _iter_jsonl(path, limit=1000):
 
 
 def _audit_to_public(item):
-    """Convertir auditoría interna en eventos públicos, filtrando ruido."""
+    """Convert internal audit records into public events while filtering noise."""
     if item.get("type") != "sensor_flag_judgement":
         return None
 
@@ -496,21 +505,21 @@ def _audit_to_public(item):
 
     # Filtro de importancia:
     # - cell coincidence: always relevant;
-    # - señal compartida: importa si supera un piso moderado;
-    # - señal sola: solo si es claramente alta.
+    # - shared signal: relevant only above a moderate threshold;
+    # - isolated signal: relevant only when clearly strong.
     if judgement == "confirmed_by_cell" or companions >= 2:
-        level = "movimiento_posible"
-        summary = "señal coincidente en una zona"
+        level = "watch"
+        summary = "coincident signal within one cell"
     elif judgement == "with_peer" or companions == 1:
         if ratio < 3.0:
             return None
-        level = "senal_compartida"
+        level = "shared_signal"
         summary = "shared signal from nearby sensors"
     else:
         if ratio < 6.0:
             return None
-        level = "senal_aislada"
-        summary = "señal aislada intensa"
+        level = "isolated_signal"
+        summary = "intense isolated signal"
 
     return {
         "type": "sensor_signal",
@@ -530,7 +539,7 @@ def _audit_to_public(item):
 
 
 def _compact_event(item):
-    """Salida pública compacta: suficiente para trazabilidad, sin duplicaciones."""
+    """Compact public output: enough for traceability without duplication."""
     item = _enrich_sensor_event(dict(item))
     sensor = item.get("sensor") or {}
     cell_id = item.get("cell_id")
@@ -539,8 +548,8 @@ def _compact_event(item):
     out = {
         "timestamp": item.get("timestamp"),
         "type": item.get("type"),
-        "level": item.get("public_level") or item.get("event_level") or "evento",
-        "summary": item.get("summary") or item.get("message") or "evento Cuyum",
+        "level": item.get("public_level") or item.get("event_level") or "event",
+        "summary": item.get("summary") or item.get("message") or "Cuyum event",
         "sound": bool(item.get("sound", False)),
     }
 
@@ -554,7 +563,7 @@ def _compact_event(item):
             "id": sensor.get("id") or item.get("sensor_id"),
             "name": sensor.get("name") or item.get("sensor_name"),
             "station": sensor.get("station") or item.get("station"),
-            "locality": sensor.get("locality") or item.get("localidad"),
+            "locality": sensor.get("locality") or item.get("locality"),
         }
         if lat is not None and lon is not None:
             sensor_obj["coords"] = {
@@ -600,11 +609,11 @@ def _is_publicly_relevant(item):
         level = item.get("public_level")
         ratio = _as_float(item.get("ratio_max"), None)
         companions = int(item.get("companions") or 0)
-        if level == "movimiento_posible" or companions >= 2:
+        if level == "watch" or companions >= 2:
             return True
-        if level == "senal_compartida" and (ratio is None or ratio >= 3.0):
+        if level == "shared_signal" and (ratio is None or ratio >= 3.0):
             return True
-        if level == "senal_aislada" and ratio is not None and ratio >= 6.0:
+        if level == "isolated_signal" and ratio is not None and ratio >= 6.0:
             return True
         return False
     if t == "system_decision":
@@ -661,8 +670,8 @@ def build_public_events(limit=100, include_audit=True):
         "description": "Recent significant records. Full live state is in /api/public/live.",
         "filters": {
             "sensor_signal": "zone coincidences, shared signals, or intense isolated signals",
-            "system_decision": "decisiones públicas no normales de Cuyum",
-            "coverage_noise": "calibración, latencia y snapshots normales no se publican aquí"
+            "system_decision": "non-normal public decisions made by Cuyum",
+            "coverage_noise": "calibration, latency, and normal snapshots are not published here"
         },
         "events": unique,
     }

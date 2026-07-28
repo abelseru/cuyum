@@ -24,8 +24,8 @@ pkill -f app/seedlink_discovery.py 2>/dev/null || true
 pkill -f app/sensor_auditor.py 2>/dev/null || true
 sleep 2
 
-echo "[2/8] Cleaning logs..."
-mkdir -p runtime_logs
+echo "[2/8] Preparing runtime directories and cleaning logs..."
+mkdir -p runtime runtime_logs
 : > runtime_logs/logs_cuyum_server.txt
 : > runtime_logs/logs_lector.txt
 : > runtime_logs/logs_auto_cell_01.txt
@@ -107,7 +107,11 @@ done
 echo
 echo "Open:"
 echo "http://127.0.0.1:5050/app"
-echo "http://192.168.1.37:5050/app"
+
+LAN_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+if [ -n "$LAN_IP" ]; then
+  echo "http://${LAN_IP}:5050/app"
+fi
 echo
 echo "To stop Cuyum:"
 echo "./stop_cuyum_v1_2.sh"

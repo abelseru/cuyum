@@ -23,10 +23,14 @@ function uiClassLabel(value) {
   const text = String(value || "").trim().toLowerCase();
   const map = {
     "high": "alta",
+    "strong": "alta",
     "good": "buena",
     "minimal": "mínima",
     "listening": "escucha",
+    "single station": "escucha",
     "waiting": "en espera",
+    "no coverage": "sin cobertura",
+    "no recent data": "en espera",
     "no_coverage": "sin cobertura",
     "strong_cell": "alta",
     "good_cell": "buena",
@@ -49,6 +53,22 @@ function uiNetworkLabel(value) {
   };
   return map[text] || value || "red Cuyum";
 }
+function uiDirectionLabel(value) {
+  const text = String(value || "").trim().toLowerCase();
+  const map = {
+    "north": "NORTE",
+    "northeast": "NORESTE",
+    "east": "ESTE",
+    "southeast": "SURESTE",
+    "south": "SUR",
+    "southwest": "SUROESTE",
+    "west": "OESTE",
+    "northwest": "NOROESTE",
+    "local": "Local"
+  };
+  return map[text] || value || "Zona";
+}
+
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>'"]/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
   }
@@ -68,7 +88,8 @@ function escapeHtml(value) {
 
   function cellHumanLabel(cell) {
     if (!cell) return 'Red';
-    return cell.label || cell.short_label || cell.direction_label || 'Zona';
+    const raw = cell.label || cell.short_label || cell.direction_label || 'Zona';
+    return uiDirectionLabel(raw);
   }
 
   function warningSecondsFrom(data, cell) {
@@ -255,7 +276,7 @@ function displayCellId(cell, i) {
       row.innerHTML = `
         <div class="zone-name-wrap">
           <span class="zone-dot" aria-hidden="true"></span>
-          <b class="zone-name">${escapeHtml(cell.label || cell.short_label || 'Zona')}</b>
+          <b class="zone-name">${escapeHtml(uiDirectionLabel(cell.label || cell.short_label || cell.direction_label || 'Zona'))}</b>
         </div>
         <span class="zone-level">${escapeHtml(label)}</span>
         <span class="zone-sensors">${escapeHtml(sensorCountLabel(cell))}</span>
@@ -406,7 +427,11 @@ function displayCellId(cell, i) {
   }
 
   function sensorPopup(sensor) {
-    const title = sensor.name && sensor.name !== sensor.sensor_id ? sensor.name : (sensor.sensor_id || 'Sensor');
+    const title =
+      sensor.locality ||
+      (sensor.name && sensor.name !== sensor.sensor_id ? sensor.name : null) ||
+      sensor.sensor_id ||
+      'Sensor';
     const code = sensor.sensor_id || '';
     const zona = isRegionalObserver(sensor) ? 'Observadores' : (sensor.cell_label || sensor.cell_id || 'Zona');
     const estado = sensor.state || 'activo';

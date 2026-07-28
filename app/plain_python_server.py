@@ -8,7 +8,7 @@ import traceback
 
 from multicell_fusion import build_node_poll, build_multicell_state
 from public_live import build_public_live
-from public_api_v1 import build_public_v1, build_events_v1
+from public_api_v1 import build_events_v1
 
 
 HOST = "0.0.0.0"
@@ -85,69 +85,6 @@ def file_bytes(path):
     return Path(path).read_bytes()
 
 
-
-def read_compat_json(path, fallback):
-    try:
-        path = Path(path)
-        if not path.exists():
-            return fallback
-        return json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return fallback
-
-
-def build_regional_preview_payload():
-    summary = read_compat_json(
-        BASE_DIR / "runtime/regional_auto_preview_summary.json",
-        {},
-    )
-    alive_inventory = read_compat_json(
-        BASE_DIR / "runtime/bootstrap_preview/candidate_inventory.alive.preview.json",
-        {},
-    )
-
-    center = summary.get("center") or alive_inventory.get("center") or {}
-    classification = summary.get("classification") or {}
-
-    sensors = []
-    for s in alive_inventory.get("sensores", []):
-        sensors.append({
-            "code": f"{s.get('red')}.{s.get('estacion')}.{s.get('canal')}",
-            "network": s.get("red"),
-            "station": s.get("estacion"),
-            "channel": s.get("canal"),
-            "name": s.get("nombre"),
-            "lat": s.get("lat"),
-            "lon": s.get("lon"),
-            "distance_km": s.get("distancia_km"),
-            "role": s.get("rol"),
-            "status": s.get("estado"),
-            "packets": s.get("paquetes_ultima_revision"),
-            "latency_seconds": s.get("latencia_aprox_seg"),
-            "sampling_rate": s.get("frecuencia_hz"),
-            "can_trigger": bool(s.get("puede_disparar")),
-        })
-
-    return {
-        "system": "Cuyum",
-        "mode": "regional_preview",
-        "live_system_modified": False,
-        "center": center,
-        "capability": classification.get("capability"),
-        "public_status": classification.get("public_status"),
-        "local_trigger_allowed": bool(classification.get("local_trigger_allowed", False)),
-        "local_alive_count": classification.get("local_alive_count", 0),
-        "regional_alive_count": classification.get("regional_alive_count", len(sensors)),
-        "fdsn_sensors_found": summary.get("fdsn_sensors_found"),
-        "candidates_tested": summary.get("candidates_tested"),
-        "alive_count": summary.get("alive_count", len(sensors)),
-        "seedlink_server": summary.get("seedlink_server") or alive_inventory.get("seedlink_server"),
-        "sensors": sensors,
-        "source_files": {
-            "summary": "runtime/regional_auto_preview_summary.json",
-            "alive_inventory": "runtime/bootstrap_preview/candidate_inventory.alive.preview.json",
-        },
-    }
 
 
 class CuyumHandler(BaseHTTPRequestHandler):
@@ -282,10 +219,6 @@ class CuyumHandler(BaseHTTPRequestHandler):
 
             if path == "/json":
                 self.send_json(cached("public_live", build_public_live))
-                return
-
-            if path == "/json/regional-preview":
-                self.send_json(cached("regional_preview", build_regional_preview_payload))
                 return
 
 

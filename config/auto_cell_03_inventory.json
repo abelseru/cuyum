@@ -1,54 +1,22 @@
 {
-  "cell_id": "auto_cell_01",
-  "label": "West",
-  "direction": "West",
+  "cell_id": "auto_cell_03",
+  "label": "North",
+  "direction": "North",
   "generated_by": "live_inventory_organizer",
-  "generated_at": "2026-07-27T21:52:04.126879",
+  "generated_at": "2026-07-27T21:52:04.128138",
   "center": {
-    "label": "West",
-    "lat": -33.070219,
-    "lon": -71.056312
+    "label": "North",
+    "lat": -29.919183,
+    "lon": -69.816791
   },
   "sensors": [
     {
-      "network": "C",
-      "station": "ROC1",
-      "channel": "BHZ",
-      "name": "ROC1",
-      "lat": -32.9756,
-      "lon": -71.0156,
-      "role": "regional_observer",
-      "can_confirm": true,
-      "can_trigger": false,
-      "distance_km": 202.7,
-      "state": "active",
-      "source": "fdsn_station_service",
-      "source_provider": "IRIS",
-      "direction": "West"
-    },
-    {
-      "network": "C1",
-      "station": "MT07",
-      "channel": "BHZ",
-      "name": "Cerro El Roble",
-      "lat": -32.975956,
-      "lon": -71.015636,
-      "role": "regional_observer",
-      "can_confirm": true,
-      "can_trigger": false,
-      "distance_km": 202.7,
-      "state": "active",
-      "source": "fdsn_station_service",
-      "source_provider": "IRIS",
-      "direction": "West"
-    },
-    {
-      "network": "C1",
-      "station": "MT02",
-      "channel": "BHZ",
-      "name": "Curacavi",
-      "lat": -33.2591,
-      "lon": -71.1377,
+      "network": "OC",
+      "station": "DOCA",
+      "channel": "HHZ",
+      "name": "Don Carmelo",
+      "lat": -30.943871,
+      "lon": -69.082695,
       "role": "regional_observer",
       "can_confirm": true,
       "can_trigger": false,
@@ -56,7 +24,39 @@
       "state": "active",
       "source": "fdsn_station_service",
       "source_provider": "IRIS",
-      "direction": "West"
+      "direction": "North"
+    },
+    {
+      "network": "C1",
+      "station": "CO01",
+      "channel": "BHZ",
+      "name": "Juntas del Toro",
+      "lat": -29.9773,
+      "lon": -70.0939,
+      "role": "regional_observer",
+      "can_confirm": true,
+      "can_trigger": false,
+      "distance_km": 344.8,
+      "state": "active",
+      "source": "fdsn_station_service",
+      "source_provider": "IRIS",
+      "direction": "North"
+    },
+    {
+      "network": "C1",
+      "station": "AC05",
+      "channel": "BHZ",
+      "name": "El Transito",
+      "lat": -28.836377,
+      "lon": -70.273777,
+      "role": "regional_observer",
+      "can_confirm": true,
+      "can_trigger": false,
+      "distance_km": 470.8,
+      "state": "active",
+      "source": "fdsn_station_service",
+      "source_provider": "IRIS",
+      "direction": "North"
     }
   ]
 }

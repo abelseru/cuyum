@@ -52,7 +52,7 @@ def trim_jsonl(path, days):
                 item = json.loads(line)
             except Exception:
                 continue
-            ts = parse_timestamp(item.get("timestamp") or item.get("ultima_actualizacion"))
+            ts = parse_timestamp(item.get("timestamp") or item.get("updated_at"))
             if ts is None:
                 continue
             if ts >= cutoff:

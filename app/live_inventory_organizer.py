@@ -39,13 +39,15 @@ def fnum(value, default=999999.0):
         return default
 
 
-def sensor_code(s):
-    red = s.get("red") or s.get("network")
-    est = s.get("estacion") or s.get("station")
-    can = s.get("canal") or s.get("channel")
-    if not red or not est or not can:
+def sensor_code(sensor):
+    network = sensor.get("network")
+    station = sensor.get("station")
+    channel = sensor.get("channel")
+
+    if not network or not station or not channel:
         return None
-    return f"{red}.{est}.{can}"
+
+    return f"{network}.{station}.{channel}"
 
 
 def has_geo(s):
@@ -63,14 +65,16 @@ def haversine_km(lat1, lon1, lat2, lon2):
 
 
 def catalog_items_to_sensors(catalog, center):
-    raw = catalog.get("sensors") or catalog.get("sensores") or catalog.get("stations") or catalog
+    raw_sensors = catalog.get("sensors", {})
 
-    if isinstance(raw, dict):
-        items = list(raw.values())
-    elif isinstance(raw, list):
-        items = raw
+    if isinstance(raw_sensors, dict):
+        items = list(raw_sensors.values())
+    elif isinstance(raw_sensors, list):
+        items = raw_sensors
     else:
-        items = []
+        raise ValueError(
+            "seedlink_station_catalog.json: sensors must be a dictionary or list"
+        )
 
     out = []
 
@@ -78,42 +82,41 @@ def catalog_items_to_sensors(catalog, center):
         if not isinstance(item, dict):
             continue
 
-        s = dict(item)
+        sensor = dict(item)
 
-        red = s.get("red") or s.get("network")
-        est = s.get("estacion") or s.get("station")
-        can = s.get("canal") or s.get("channel")
+        network = sensor.get("network")
+        station = sensor.get("station")
+        channel = sensor.get("channel")
 
-        if not red or not est or not can:
-            sid = s.get("sensor_id") or s.get("id") or ""
-            parts = str(sid).split(".")
-            if len(parts) >= 3:
-                red = red or parts[0]
-                est = est or parts[1]
-                can = can or parts[-1]
+        if not network or not station or not channel:
+            continue
 
-        s["red"] = red
-        s["estacion"] = est
-        s["canal"] = can
-        s["nombre"] = s.get("nombre") or s.get("name") or s.get("station_name") or f"{red}.{est}.{can}"
+        sensor["name"] = (
+            sensor.get("name")
+            or sensor.get("station_name")
+            or f"{network}.{station}.{channel}"
+        )
 
-        lat = fnum(s.get("lat"), None)
-        lon = fnum(s.get("lon"), None)
+        lat = fnum(sensor.get("lat"), None)
+        lon = fnum(sensor.get("lon"), None)
 
         if lat is None or lon is None:
             continue
 
-        s["lat"] = lat
-        s["lon"] = lon
+        sensor["lat"] = lat
+        sensor["lon"] = lon
 
-        dist = fnum(s.get("distancia_km") or s.get("distance_km"), None)
-        if dist is None:
-            dist = haversine_km(center["lat"], center["lon"], lat, lon)
+        distance = fnum(sensor.get("distance_km"), None)
+        if distance is None:
+            distance = haversine_km(
+                center["lat"],
+                center["lon"],
+                lat,
+                lon,
+            )
 
-        s["distancia_km"] = round(dist, 1)
-
-        if red and est and can:
-            out.append(s)
+        sensor["distance_km"] = round(distance, 1)
+        out.append(sensor)
 
     return out
 
@@ -133,90 +136,120 @@ def bearing(lat1, lon1, lat2, lon2):
 
 def sector_name(deg):
     if deg >= 337.5 or deg < 22.5:
-        return "Norte"
+        return "North"
     if deg < 67.5:
-        return "Noreste"
+        return "Northeast"
     if deg < 112.5:
-        return "Este"
+        return "East"
     if deg < 157.5:
-        return "Sureste"
+        return "Southeast"
     if deg < 202.5:
-        return "Sur"
+        return "South"
     if deg < 247.5:
-        return "Suroeste"
+        return "Southwest"
     if deg < 292.5:
-        return "Oeste"
-    return "Noroeste"
+        return "West"
+    return "Northwest"
 
 
-def credibility_bonus(s):
-    text = " ".join(str(s.get(k) or "") for k in ("red", "network", "nombre", "name", "source_provider"))
-    text = text.lower()
+def credibility_bonus(sensor):
+    text = " ".join(
+        str(sensor.get(key) or "")
+        for key in ("network", "name", "source_provider")
+    ).lower()
 
     bonus = 0
+
     if "inpres" in text:
         bonus -= 80
-    if "ri." in text or str(s.get("red") or s.get("network")) == "RI":
+
+    if sensor.get("network") == "RI":
         bonus -= 40
+
     if "conicet" in text:
         bonus -= 25
+
     return bonus
 
 
-def local_score(s):
-    # Local: distancia primero. Nada de ranking oscuro que expulse sensores cercanos.
+def local_score(sensor):
     return (
-        fnum(s.get("distancia_km") or s.get("distance_km")),
-        fnum(s.get("latencia_aprox_seg") or s.get("latency_seconds"), 999),
-        -fnum(s.get("paquetes_ultima_revision") or s.get("packets"), 0),
-        sensor_code(s) or "",
+        fnum(sensor.get("distance_km")),
+        fnum(
+            sensor.get("approx_latency_seconds")
+            if sensor.get("approx_latency_seconds") is not None
+            else sensor.get("latency_seconds"),
+            999,
+        ),
+        -fnum(sensor.get("packets_last_revision"), 0),
+        sensor_code(sensor) or "",
     )
 
 
-def observer_score(s):
-    # Observadores: distancia dentro de su zona + pequeña preferencia por fuentes creíbles.
+def observer_score(sensor):
     return (
-        fnum(s.get("distancia_km") or s.get("distance_km")) + credibility_bonus(s),
-        fnum(s.get("latencia_aprox_seg") or s.get("latency_seconds"), 999),
-        -fnum(s.get("paquetes_ultima_revision") or s.get("packets"), 0),
-        sensor_code(s) or "",
+        fnum(sensor.get("distance_km")) + credibility_bonus(sensor),
+        fnum(
+            sensor.get("approx_latency_seconds")
+            if sensor.get("approx_latency_seconds") is not None
+            else sensor.get("latency_seconds"),
+            999,
+        ),
+        -fnum(sensor.get("packets_last_revision"), 0),
+        sensor_code(sensor) or "",
     )
 
 
-def normalize_sensor(s):
-    red = s.get("red") or s.get("network")
-    est = s.get("estacion") or s.get("station")
-    can = s.get("canal") or s.get("channel")
-    nombre = s.get("nombre") or s.get("name") or sensor_code(s)
+def normalize_sensor(sensor):
+    out = dict(sensor)
 
-    out = dict(s)
-    out["red"] = red
-    out["estacion"] = est
-    out["canal"] = can
-    out["nombre"] = nombre
+    network = out.get("network")
+    station = out.get("station")
+    channel = out.get("channel")
+
+    if not network or not station or not channel:
+        return out
+
+    out["network"] = network
+    out["station"] = station
+    out["channel"] = channel
+    out["name"] = (
+        out.get("name")
+        or out.get("station_name")
+        or sensor_code(out)
+    )
+
     out["lat"] = fnum(out.get("lat"), None)
     out["lon"] = fnum(out.get("lon"), None)
-    out["distancia_km"] = round(fnum(out.get("distancia_km") or out.get("distance_km")), 1)
+    out["distance_km"] = round(
+        fnum(out.get("distance_km")),
+        1,
+    )
+
     return out
 
 
-def station_key(s):
-    red = s.get("red") or s.get("network")
-    est = s.get("estacion") or s.get("station")
-    if not red or not est:
-        return sensor_code(s)
-    return f"{red}.{est}"
+def station_key(sensor):
+    network = sensor.get("network")
+    station = sensor.get("station")
+
+    if not network or not station:
+        return sensor_code(sensor)
+
+    return f"{network}.{station}"
 
 
-def channel_priority(s):
-    canal = str(s.get("canal") or s.get("channel") or "").upper()
+def channel_priority(sensor):
+    channel = str(sensor.get("channel") or "").upper()
+
     order = {
         "BHZ": 0,
         "HHZ": 1,
         "EHZ": 2,
         "SHZ": 3,
     }
-    return order.get(canal, 99)
+
+    return order.get(channel, 99)
 
 
 def apply_geo_overrides(sensors, overrides):
@@ -244,10 +277,10 @@ def apply_geo_overrides(sensors, overrides):
                 s["lat"] = ov.get("lat")
             if ov.get("lon") is not None:
                 s["lon"] = ov.get("lon")
-            if ov.get("name") or ov.get("nombre"):
-                s["nombre"] = ov.get("nombre") or ov.get("name")
-            if ov.get("localidad"):
-                s["localidad"] = ov.get("localidad")
+            if ov.get("name"):
+                s["name"] = ov.get("name")
+            if ov.get("locality"):
+                s["locality"] = ov.get("locality")
 
         out.append(s)
 
@@ -267,17 +300,17 @@ def dedupe_physical_stations(sensors):
             best[key] = s
             continue
 
-        # Misma estación física: preferir canal vertical broadband y luego menor distancia.
+        # Same physical station: prefer a vertical broadband channel, then shorter distance.
         new_rank = (
             0 if s.get("_has_geo_override") else 1,
             channel_priority(s),
-            fnum(s.get("distancia_km")),
+            fnum(s.get("distance_km")),
             sensor_code(s) or "",
         )
         old_rank = (
             0 if current.get("_has_geo_override") else 1,
             channel_priority(current),
-            fnum(current.get("distancia_km")),
+            fnum(current.get("distance_km")),
             sensor_code(current) or "",
         )
 
@@ -300,9 +333,9 @@ def sensor_bearing_deg(center, s):
     return (math.degrees(math.atan2(y, x)) + 360) % 360
 
 
-def local_sector(center, s):
-    deg = sensor_bearing_deg(center, s)
-    sectors = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
+def local_sector(center, sensor):
+    deg = sensor_bearing_deg(center, sensor)
+    sectors = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
     return sectors[int((deg + 22.5) // 45) % 8]
 
 
@@ -312,7 +345,7 @@ def local_selection_score(s):
     return (
         0 if s.get("_has_geo_override") else 1,
         -fnum(s.get("score_selection"), 0.0),
-        fnum(s.get("distancia_km")),
+        fnum(s.get("distance_km")),
         channel_priority(s),
         sensor_code(s) or "",
     )
@@ -360,39 +393,37 @@ def select_local_sensors_diverse(local_pool, center, local_max):
 
 
 
-def to_english_sensor(s):
-    network = s.get("network") or s.get("red")
-    station = s.get("station") or s.get("estacion")
-    channel = s.get("channel") or s.get("canal")
-    name = s.get("name") or s.get("nombre") or s.get("station_name") or sensor_code(s)
-    distance = s.get("distance_km", s.get("distancia_km"))
-
+def clean_sensor(sensor):
     out = {
-        "network": network,
-        "station": station,
-        "channel": channel,
-        "name": name,
-        "lat": s.get("lat"),
-        "lon": s.get("lon"),
-        "role": s.get("role") or s.get("rol"),
-        "can_confirm": bool(s.get("can_confirm", s.get("puede_confirmar", True))),
-        "can_trigger": bool(s.get("can_trigger", s.get("puede_disparar", False))),
-        "distance_km": round(fnum(distance), 1),
-        "state": s.get("state") or s.get("estado") or "active",
-        "source": s.get("source"),
-        "source_provider": s.get("source_provider"),
+        "network": sensor.get("network"),
+        "station": sensor.get("station"),
+        "channel": sensor.get("channel"),
+        "name": sensor.get("name") or sensor_code(sensor),
+        "lat": sensor.get("lat"),
+        "lon": sensor.get("lon"),
+        "role": sensor.get("role"),
+        "can_confirm": bool(sensor.get("can_confirm", True)),
+        "can_trigger": bool(sensor.get("can_trigger", False)),
+        "distance_km": round(fnum(sensor.get("distance_km")), 1),
+        "state": sensor.get("state") or "active",
+        "source": sensor.get("source"),
+        "source_provider": sensor.get("source_provider"),
     }
 
-    if s.get("cell_hint"):
-        out["cell_hint"] = s.get("cell_hint")
-    if s.get("direction"):
-        out["direction"] = s.get("direction")
-    if s.get("local_sector"):
-        out["local_sector"] = s.get("local_sector")
-    if s.get("_has_geo_override"):
+    if sensor.get("cell_hint"):
+        out["cell_hint"] = sensor.get("cell_hint")
+
+    if sensor.get("direction"):
+        out["direction"] = sensor.get("direction")
+
+    if sensor.get("local_sector"):
+        out["local_sector"] = sensor.get("local_sector")
+
+    if sensor.get("_has_geo_override"):
         out["_has_geo_override"] = True
-    if s.get("locality") or s.get("localidad"):
-        out["locality"] = s.get("locality") or s.get("localidad")
+
+    if sensor.get("locality"):
+        out["locality"] = sensor.get("locality")
 
     return out
 
@@ -414,8 +445,8 @@ def main():
     if "lat" not in center or "lon" not in center:
         raise SystemExit("config/system_center.json no tiene lat/lon")
 
-    # Fuente principal: catálogo completo recién reconstruido para este centro.
-    # candidate_inventory puede venir ya podado; no debe decidir la selección final.
+    # Primary source: full station catalog rebuilt for this center.
+    # candidate_inventory may already be pruned and must not decide the final selection.
     catalog_sensors = catalog_items_to_sensors(station_catalog, center)
 
     if catalog_sensors:
@@ -423,18 +454,18 @@ def main():
         source_sensors = catalog_sensors
     else:
         source_name = "candidate_inventory"
-        source_sensors = candidate.get("sensors") or candidate.get("sensores", [])
+        source_sensors = candidate.get("sensors", [])
 
     all_sensors = [normalize_sensor(s) for s in source_sensors if usable(s)]
     all_sensors = apply_geo_overrides(all_sensors, geo_overrides)
 
-    # Recalcular distancia después de aplicar overrides.
+    # Recalculate distance after applying overrides.
     recalculated = []
     for s in all_sensors:
         if not usable(s):
             continue
         s = normalize_sensor(s)
-        s["distancia_km"] = round(
+        s["distance_km"] = round(
             haversine_km(center["lat"], center["lon"], s["lat"], s["lon"]),
             1
         )
@@ -442,10 +473,10 @@ def main():
 
     all_sensors = [
         s for s in recalculated
-        if fnum(s.get("distancia_km")) <= 800
+        if fnum(s.get("distance_km")) <= 800
     ]
 
-    # Una estación física cuenta una sola vez.
+    # Count each physical station only once.
     all_sensors = dedupe_physical_stations(all_sensors)
 
     # Reset completo de inventarios y estados de celdas anteriores.
@@ -457,17 +488,13 @@ def main():
     for old_state in (BASE / "runtime").glob("auto_cell_*_state.json"):
         old_state.unlink()
 
-    runtime_cells = BASE / "cuyum_runtime_cells.json"
-    if runtime_cells.exists():
-        runtime_cells.unlink()
-
     local_candidates = [
         s for s in all_sensors
-        if fnum(s.get("distancia_km")) <= args.local_max_km
+        if fnum(s.get("distance_km")) <= args.local_max_km
     ]
     observer_candidates = [
         s for s in all_sensors
-        if fnum(s.get("distancia_km")) > args.local_max_km
+        if fnum(s.get("distance_km")) > args.local_max_km
     ]
 
     local = select_local_sensors_diverse(local_candidates, center, args.local_max)
@@ -492,12 +519,12 @@ def main():
     for sec, items in grouped.items():
         chosen = sorted(items, key=observer_score)[:args.sensors_per_zone]
         if chosen:
-            nearest = min(fnum(s.get("distancia_km")) for s in chosen)
+            nearest = min(fnum(s.get("distance_km")) for s in chosen)
             zone_pack.append((nearest, sec, chosen))
 
     zone_pack = sorted(zone_pack, key=lambda x: x[0])[:args.zone_max]
 
-    # Límite absoluto real.
+    # Enforce the absolute sensor limit.
     used_total = len(local)
     final_zones = []
     for nearest, sec, chosen in zone_pack:
@@ -511,8 +538,7 @@ def main():
 
     # Final candidate inventory keeps local sensors only.
     final_candidate = dict(candidate)
-    final_candidate.pop("sensores", None)
-    final_candidate["sensors"] = [to_english_sensor(s) for s in local]
+    final_candidate["sensors"] = [clean_sensor(s) for s in local]
     final_candidate["organized_by"] = "live_inventory_organizer"
     final_candidate["organized_at"] = datetime.now().isoformat()
     final_candidate["limits"] = {
@@ -542,7 +568,7 @@ def main():
                 "lat": round(lat_avg, 6),
                 "lon": round(lon_avg, 6),
             },
-            "sensors": [to_english_sensor(s) for s in chosen],
+            "sensors": [clean_sensor(s) for s in chosen],
         }
 
         out = BASE / f"config/auto_cell_{idx:02d}_inventory.json"
@@ -559,8 +585,8 @@ def main():
         "local": [
             {
                 "code": sensor_code(s),
-                "name": s.get("name") or s.get("nombre"),
-                "distance_km": s.get("distance_km") or s.get("distancia_km"),
+                "name": s.get("name"),
+                "distance_km": s.get("distance_km"),
             }
             for s in local
         ],
@@ -571,8 +597,8 @@ def main():
                 "sensors": [
                     {
                         "code": sensor_code(s),
-                        "name": s.get("name") or s.get("nombre"),
-                        "distance_km": s.get("distance_km") or s.get("distancia_km"),
+                        "name": s.get("name"),
+                        "distance_km": s.get("distance_km"),
                     }
                     for s in chosen
                 ],

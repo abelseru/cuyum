@@ -24,7 +24,7 @@ def read_json(path, default=None):
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as exc:
-        print(f"WARN no se pudo leer {path}: {exc}", flush=True)
+        print(f"WARN could not read {path}: {exc}", flush=True)
         return default
 
 
@@ -43,35 +43,32 @@ def append_jsonl(path, item):
         f.write(json.dumps(item, ensure_ascii=False) + "\n")
 
 
-def sensor_key_from_parts(red, station, channel):
-    return f"{red}.{station}.{channel}"
+def sensor_key_from_parts(network, station, channel):
+    return f"{network}.{station}.{channel}"
 
 
 def inventory_map(inventory):
     result = {}
-    for s in (inventory or {}).get("sensores", []):
+    for sensor in (inventory or {}).get("sensors", []):
         try:
-            key = sensor_key_from_parts(s["red"], s["estacion"], s["canal"])
-            result[key] = s
+            key = sensor_key_from_parts(
+                sensor["network"],
+                sensor["station"],
+                sensor["channel"],
+            )
+            result[key] = sensor
         except KeyError:
             continue
     return result
 
 
-def first_zone_from_state(state, config):
-    zones = (state or {}).get("zonas", {})
-    cells = config.get("cells", [])
-
-    for cell in cells:
-        legacy_key = cell.get("legacy_zone_key")
-        if legacy_key and legacy_key in zones:
-            return cell.get("id", "cell_01"), legacy_key, zones[legacy_key]
-
-    if zones:
-        key = next(iter(zones.keys()))
-        return "cell_01", key, zones[key]
-
-    return "cell_01", None, {}
+def first_zone_from_state(state):
+    zone = (
+        (state or {})
+        .get("zones", {})
+        .get("local_adaptive_zone", {})
+    )
+    return "cell_00", "local_adaptive_zone", zone
 
 
 def latency_score(latency):
@@ -151,22 +148,19 @@ def recalc_scores(entry, scoring):
     entry["confidence_state"] = confidence_state(entry, scoring)
 
 
-def base_entry(key, inv=None, current=None, cell_id="cell_01"):
+def base_entry(key, inv=None, current=None, cell_id="cell_00"):
     inv = inv or {}
     current = current or {}
-    red = current.get("red", inv.get("red"))
-    station = current.get("estacion", inv.get("estacion"))
-    channel = current.get("canal", inv.get("canal"))
 
     return {
         "sensor_id": key,
-        "network": red,
-        "station": station,
-        "channel": channel,
-        "trace_id_last": current.get("trace_id", inv.get("trace_id_ultima_revision")),
-        "name": current.get("nombre", inv.get("nombre")),
-        "role": current.get("rol", inv.get("rol")),
-        "distance_km": current.get("distancia_km", inv.get("distancia_km")),
+        "network": current.get("network", inv.get("network")),
+        "station": current.get("station", inv.get("station")),
+        "channel": current.get("channel", inv.get("channel")),
+        "trace_id_last": current.get("trace_id"),
+        "name": current.get("name", inv.get("name")),
+        "role": current.get("role", inv.get("role")),
+        "distance_km": current.get("distance_km", inv.get("distance_km")),
         "cells": {cell_id: "active"},
         "operational_state": "unknown",
         "confidence_state": "candidate",
@@ -189,8 +183,8 @@ def base_entry(key, inv=None, current=None, cell_id="cell_01"):
         "score_latency": 0.5,
         "score_credibility": 0.5,
         "score_selection": 0.5,
-        "can_trigger": bool(inv.get("puede_disparar", current.get("puede_disparar", False))),
-        "can_confirm": bool(inv.get("puede_confirmar", current.get("puede_confirmar", True))),
+        "can_trigger": bool(current.get("can_trigger", inv.get("can_trigger", False))),
+        "can_confirm": bool(current.get("can_confirm", inv.get("can_confirm", True))),
         "autoexpansion_use": "active",
         "notes": []
     }
@@ -215,15 +209,15 @@ def update_latency(entry, latency):
 
 
 def judge_flags(zone, catalog, cell_id):
-    flags = zone.get("flags_recientes", {}) or {}
+    flags = zone.get("recent_flags", {}) or {}
     active_flags = list(flags.values())
     total_flags = len(active_flags)
 
     for flag in active_flags:
-        key = flag.get("clave")
+        key = flag.get("sensor_id")
         if not key or key not in catalog["sensors"]:
             continue
-        event_key = f"{key}|{flag.get('tiempo')}|{flag.get('ultima_actualizacion')}"
+        event_key = f"{key}|{flag.get('timestamp')}|{flag.get('updated_at')}"
         entry = catalog["sensors"][key]
         if entry.get("last_flag_event_key") == event_key:
             continue
@@ -245,9 +239,9 @@ def judge_flags(zone, catalog, cell_id):
             "type": "sensor_flag_judgement",
             "cell_id": cell_id,
             "sensor_id": key,
-            "station": flag.get("estacion"),
+            "station": flag.get("station"),
             "ratio": flag.get("ratio"),
-            "magnitude_experimental": flag.get("magnitud_estimada"),
+            "magnitude_experimental": flag.get("estimated_magnitude"),
             "companions": companions,
             "judgement": judgement
         }
@@ -255,11 +249,11 @@ def judge_flags(zone, catalog, cell_id):
         event_journal.record_sensor_judgement(
             cell_id=cell_id,
             sensor_id=key,
-            station=flag.get("estacion"),
+            station=flag.get("station"),
             ratio=flag.get("ratio"),
             companions=companions,
             judgement=judgement,
-            magnitude_experimental=flag.get("magnitud_estimada"),
+            magnitude_experimental=flag.get("estimated_magnitude"),
         )
 
 
@@ -280,8 +274,8 @@ def audit_once():
     catalog.setdefault("sensors", {})
 
     inv_map = inventory_map(inventory)
-    cell_id, zone_key, zone = first_zone_from_state(state, config)
-    current_sensors = zone.get("sensores", {}) or {}
+    cell_id, zone_key, zone = first_zone_from_state(state)
+    current_sensors = zone.get("sensors", {}) or {}
 
     all_keys = set(inv_map.keys()) | set(current_sensors.keys())
     changed_states = []
@@ -302,20 +296,20 @@ def audit_once():
 
         entry = sensors[key]
         entry.setdefault("cells", {})[cell_id] = "active" if current else "inventory"
-        entry["network"] = current.get("red", inv.get("red", entry.get("network")))
-        entry["station"] = current.get("estacion", inv.get("estacion", entry.get("station")))
-        entry["channel"] = current.get("canal", inv.get("canal", entry.get("channel")))
-        entry["trace_id_last"] = current.get("trace_id", inv.get("trace_id_ultima_revision", entry.get("trace_id_last")))
-        entry["name"] = current.get("nombre", inv.get("nombre", entry.get("name")))
-        entry["role"] = current.get("rol", inv.get("rol", entry.get("role")))
-        entry["distance_km"] = current.get("distancia_km", inv.get("distancia_km", entry.get("distance_km")))
-        entry["can_trigger"] = bool(current.get("puede_disparar", inv.get("puede_disparar", entry.get("can_trigger", False))))
-        entry["can_confirm"] = bool(current.get("puede_confirmar", inv.get("puede_confirmar", entry.get("can_confirm", True))))
+        entry["network"] = current.get("network", inv.get("network", entry.get("network")))
+        entry["station"] = current.get("station", inv.get("station", entry.get("station")))
+        entry["channel"] = current.get("channel", inv.get("channel", entry.get("channel")))
+        entry["trace_id_last"] = current.get("trace_id", entry.get("trace_id_last"))
+        entry["name"] = current.get("name", inv.get("name", entry.get("name")))
+        entry["role"] = current.get("role", inv.get("role", entry.get("role")))
+        entry["distance_km"] = current.get("distance_km", inv.get("distance_km", entry.get("distance_km")))
+        entry["can_trigger"] = bool(current.get("can_trigger", inv.get("can_trigger", entry.get("can_trigger", False))))
+        entry["can_confirm"] = bool(current.get("can_confirm", inv.get("can_confirm", entry.get("can_confirm", True))))
 
-        update_marker = current.get("ultima_actualizacion") or inv.get("ultima_revision")
-        state_sensor = current.get("estado_sensor") or inv.get("estado", "unknown")
+        update_marker = current.get("updated_at")
+        sensor_state = current.get("sensor_state") or inv.get("availability_state", "unknown")
         previous_state = entry.get("operational_state")
-        entry["operational_state"] = state_sensor
+        entry["operational_state"] = sensor_state
 
         if update_marker and entry.get("last_counted_update") != update_marker:
             entry["last_counted_update"] = update_marker
@@ -323,27 +317,27 @@ def audit_once():
             entry["revisions_total"] = entry.get("revisions_total", 0) + 1
 
             alive_states = {"active", "alive", "calibrating"}
-            if state_sensor in alive_states:
+            if sensor_state in alive_states:
                 entry["revisions_alive"] = entry.get("revisions_alive", 0) + 1
             else:
                 entry["revisions_down"] = entry.get("revisions_down", 0) + 1
 
-            packets = inv.get("paquetes_ultima_revision")
+            packets = inv.get("packets_last_revision")
             if isinstance(packets, int):
                 entry["packets_total_observed"] = entry.get("packets_total_observed", 0) + packets
 
-            update_latency(entry, current.get("latencia_segundos", inv.get("latencia_aprox_seg")))
+            update_latency(entry, current.get("latency_seconds", inv.get("approx_latency_seconds")))
 
-        if previous_state != state_sensor:
-            changed_states.append((key, previous_state, state_sensor))
+        if previous_state != sensor_state:
+            changed_states.append((key, previous_state, sensor_state))
             append_jsonl(AUDIT_FILE, {
                 "type": "sensor_state_change",
                 "cell_id": cell_id,
                 "sensor_id": key,
                 "from": previous_state,
-                "to": state_sensor
+                "to": sensor_state
             })
-            event_journal.record_sensor_state_change(cell_id, key, previous_state, state_sensor)
+            event_journal.record_sensor_state_change(cell_id, key, previous_state, sensor_state)
 
     judge_flags(zone, catalog, cell_id)
 
@@ -354,7 +348,7 @@ def audit_once():
     catalog["source_state_file"] = STATE_FILE
     catalog["source_inventory_file"] = INVENTORY_FILE
     catalog["cell_observed"] = cell_id
-    catalog["legacy_zone_key"] = zone_key
+    catalog["zone_key"] = zone_key
 
     atomic_write_json(CATALOG_FILE, catalog)
     print(f"Auditor updated: {len(catalog['sensors'])} sensors | state_changes={len(changed_states)}", flush=True)
@@ -367,12 +361,12 @@ def main():
     while True:
         try:
             audit_once()
-            ahora = time.time()
-            if ahora >= next_retention_run:
+            now = time.time()
+            if now >= next_retention_run:
                 retention_cleaner.main()
-                next_retention_run = ahora + 86400
+                next_retention_run = now + 86400
         except KeyboardInterrupt:
-            print("Auditor detenido manualmente", flush=True)
+            print("Auditor stopped manually", flush=True)
             return
         except Exception as exc:
             print(f"ERROR auditor: {exc}", flush=True)

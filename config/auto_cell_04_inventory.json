@@ -1,62 +1,62 @@
 {
-  "cell_id": "auto_cell_01",
-  "label": "West",
-  "direction": "West",
+  "cell_id": "auto_cell_04",
+  "label": "Northwest",
+  "direction": "Northwest",
   "generated_by": "live_inventory_organizer",
-  "generated_at": "2026-07-27T21:52:04.126879",
+  "generated_at": "2026-07-27T21:52:04.128570",
   "center": {
-    "label": "West",
-    "lat": -33.070219,
-    "lon": -71.056312
+    "label": "Northwest",
+    "lat": -31.712165,
+    "lon": -71.138992
   },
   "sensors": [
     {
-      "network": "C",
-      "station": "ROC1",
+      "network": "C1",
+      "station": "CO04",
       "channel": "BHZ",
-      "name": "ROC1",
-      "lat": -32.9756,
-      "lon": -71.0156,
+      "name": "Los Peladeros",
+      "lat": -32.0433,
+      "lon": -70.9747,
       "role": "regional_observer",
       "can_confirm": true,
       "can_trigger": false,
-      "distance_km": 202.7,
+      "distance_km": 220.8,
       "state": "active",
       "source": "fdsn_station_service",
       "source_provider": "IRIS",
-      "direction": "West"
+      "direction": "Northwest"
+    },
+    {
+      "network": "5S",
+      "station": "VIL06",
+      "channel": "HHZ",
+      "name": "Los Vilos",
+      "lat": -31.889494,
+      "lon": -71.441975,
+      "role": "regional_observer",
+      "can_confirm": true,
+      "can_trigger": false,
+      "distance_km": 267.9,
+      "state": "active",
+      "source": "fdsn_station_service",
+      "source_provider": "IRIS",
+      "direction": "Northwest"
     },
     {
       "network": "C1",
-      "station": "MT07",
+      "station": "CO02",
       "channel": "BHZ",
-      "name": "Cerro El Roble",
-      "lat": -32.975956,
-      "lon": -71.015636,
+      "name": "Combarbala",
+      "lat": -31.2037,
+      "lon": -71.0003,
       "role": "regional_observer",
       "can_confirm": true,
       "can_trigger": false,
-      "distance_km": 202.7,
+      "distance_km": 276.3,
       "state": "active",
       "source": "fdsn_station_service",
       "source_provider": "IRIS",
-      "direction": "West"
-    },
-    {
-      "network": "C1",
-      "station": "MT02",
-      "channel": "BHZ",
-      "name": "Curacavi",
-      "lat": -33.2591,
-      "lon": -71.1377,
-      "role": "regional_observer",
-      "can_confirm": true,
-      "can_trigger": false,
-      "distance_km": 217.5,
-      "state": "active",
-      "source": "fdsn_station_service",
-      "source_provider": "IRIS",
-      "direction": "West"
+      "direction": "Northwest"
     }
   ]
 }

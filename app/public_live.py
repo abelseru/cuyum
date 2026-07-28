@@ -7,33 +7,30 @@ import event_journal
 
 LOCAL_STATE_FILE = "runtime/state_cell_00_seedlink.json"
 AUTO_CELL_01_STATE_FILE = "runtime/auto_cell_01_state.json"
-RUNTIME_CELLS_FILE = "cuyum_runtime_cells.json"
-AUTO_INVENTORY_FILE = "config/auto_inventory_cells.json"
-INVENTORY_AUTO_CELL_01_FILE = "config/auto_cell_01_inventory.json"
 SENSOR_CATALOG_FILE = "config/sensor_catalog.json"
 SENSOR_GEO_OVERRIDES_FILE = "config/sensor_geo_overrides.json"
 SYSTEM_CENTER_FILE = "config/system_center.json"
 
-HOME_FALLBACK = {"lat": -32.8895, "lon": -68.8458, "label": "Punto local"}
+HOME_FALLBACK = {"lat": -32.8895, "lon": -68.8458, "label": "Local point"}
 MAX_PUBLIC_SENSORS = 80
 
 
-def ahora_iso():
+def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
 
-def leer_json(ruta):
-    if not os.path.exists(ruta):
+def read_json(path):
+    if not os.path.exists(path):
         return None
     try:
-        with open(ruta, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception:
         return None
 
 
 def system_center():
-    data = leer_json(SYSTEM_CENTER_FILE)
+    data = read_json(SYSTEM_CENTER_FILE)
     if isinstance(data, dict):
         lat = _as_float(data.get("lat"), None)
         lon = _as_float(data.get("lon"), None)
@@ -41,7 +38,7 @@ def system_center():
             return {
                 "lat": lat,
                 "lon": lon,
-                "label": data.get("label") or data.get("name") or HOME_FALLBACK.get("label", "Punto local")
+                "label": data.get("label") or data.get("name") or HOME_FALLBACK.get("label", "Local point")
             }
     return dict(HOME_FALLBACK)
 
@@ -86,86 +83,70 @@ def _as_int(value, default=0):
         return default
 
 
-def _sensor_key(red=None, estacion=None, canal=None, code=None, clave=None):
-    if clave:
-        return str(clave)
+def _sensor_key(network=None, station=None, channel=None, code=None, key=None):
+    if key:
+        return str(key)
     if code:
         return str(code)
-    parts = [red, estacion, canal]
+
+    parts = [network, station, channel]
     if all(parts):
-        return f"{red}.{estacion}.{canal}"
+        return f"{network}.{station}.{channel}"
+
     return ""
 
 
 def _human_class(label):
     if label is None:
-        return "en espera"
+        return "waiting"
 
     key = str(label).strip().lower()
 
     aliases = {
-        "alta": "alta",
-        "high": "alta",
-        "strong": "alta",
-        "strong_cell": "alta",
+        "high": "strong",
+        "strong": "strong",
+        "strong_cell": "strong",
 
-        "buena": "buena",
-        "good": "buena",
-        "good_cell": "buena",
+        "good": "good",
+        "good_cell": "good",
 
-        "mínima": "mínima",
-        "minima": "mínima",
-        "minimal": "mínima",
-        "minimum": "mínima",
+        "minimal": "minimal",
+        "minimum": "minimal",
+        "minimal_cell": "minimal",
 
-        "regular": "regular",
-        "listening": "regular",
-        "single_station": "regular",
-        "escucha": "regular",
+        "regular": "single station",
+        "listening": "single station",
+        "single_station": "single station",
 
-        "sin cobertura": "sin datos recientes",
-        "blind_zone": "sin datos recientes",
-        "stale_cell": "sin datos recientes",
-        "sin datos": "sin datos recientes",
-        "sin datos recientes": "sin datos recientes",
+        "blind_zone": "no recent data",
+        "stale_cell": "no recent data",
+        "no data": "no recent data",
+        "no recent data": "no recent data",
 
-        "contexto": "contexto",
+        "context": "context",
+        "observer_context": "context",
     }
 
     return aliases.get(key, str(label))
 
 
 def _network_label_en(label):
-    text = str(label or "").strip().lower()
-    table = {
-        "red multicelda alta": "high multicell network",
-        "red multicelda parcial": "partial multicell network",
-        "red local activa": "active local network",
-        "red degradada": "degraded network",
-        "red parcial": "partial network",
-        "high multicell network": "high multicell network",
-        "partial multicell network": "partial multicell network",
-        "active local network": "active local network",
-        "degraded network": "degraded network",
-        "partial network": "partial network",
-    }
-    return table.get(text, text or "unknown network")
+    text = str(label or "").strip()
+    return text or "unknown network"
 
 def _human_state(label):
     text = str(label or "normal").strip().lower()
-    if "urgente" in text:
-        return "observación"
+
     if text in ("normal", "ok"):
         return "normal"
-    if text in ("observacion", "observación"):
-        return "observación"
-    if text in ("verificación", "verificacion", "vigilancia"):
-        return "verificación"
-    if text in ("aviso", "anticipacion", "anticipación", "confirmacion", "confirmación"):
-        return "aviso"
+    if text == "observation":
+        return "observation"
+    if text in ("verification", "watch"):
+        return "verification"
+    if text in ("warning", "anticipation", "confirmation"):
+        return "warning"
+
     return text
-
-
 
 
 def _sensor_quality_label(score):
@@ -173,12 +154,12 @@ def _sensor_quality_label(score):
     if value is None:
         return None
     if value >= 0.86:
-        return "alta"
+        return "high"
     if value >= 0.72:
-        return "buena"
+        return "good"
     if value >= 0.50:
         return "regular"
-    return "en revisión"
+    return "under_review"
 
 
 def _cell_label_lookup(display_cells):
@@ -195,34 +176,41 @@ def _cell_label_lookup(display_cells):
 def _direction_name(label):
     value = str(label or "").strip().upper()
     names = {
-        "N": "Norte",
-        "NE": "Noreste",
-        "E": "Este",
-        "SE": "Sureste",
-        "S": "Sur",
-        "SO": "Suroeste",
-        "SW": "Suroeste",
-        "O": "Oeste",
-        "W": "Oeste",
-        "NO": "Noroeste",
-        "NW": "Noroeste",
+        "N": "North",
+        "NE": "Northeast",
+        "E": "East",
+        "SE": "Southeast",
+        "S": "South",
+        "SW": "Southwest",
+        "W": "West",
+        "NW": "Northwest",
         "LOCAL": "Local",
     }
-    return names.get(value, str(label or "").strip() or "Zona")
+    return names.get(value, str(label or "").strip() or "Zone")
 
 
-def _runtime_cells():
-    data = leer_json(RUNTIME_CELLS_FILE) or leer_json(AUTO_INVENTORY_FILE) or {}
-    return data.get("cells", {}) if isinstance(data, dict) else {}
+def _cell_inventories():
+    import glob
 
+    out = {}
 
-def _inventory_auto_cell_01():
-    return leer_json(INVENTORY_AUTO_CELL_01_FILE) or {}
+    for path in sorted(glob.glob("config/auto_cell_*_inventory.json")):
+        inventory = read_json(path) or {}
+        if not isinstance(inventory, dict):
+            continue
+
+        cell_id = inventory.get("cell_id")
+        if not cell_id:
+            continue
+
+        out[cell_id] = inventory
+
+    return out
 
 
 
 def _sensor_geo_overrides():
-    data = leer_json(SENSOR_GEO_OVERRIDES_FILE) or {}
+    data = read_json(SENSOR_GEO_OVERRIDES_FILE) or {}
     sensors = data.get("sensors", {}) if isinstance(data, dict) else {}
     out = {}
     for key, value in sensors.items():
@@ -236,15 +224,15 @@ def _sensor_geo_overrides():
             "lat": lat,
             "lon": lon,
             "name": name,
-            "locality": value.get("localidad") or value.get("locality") or name,
+            "locality": value.get("locality") or name,
             "source": source,
-            "approx_location": bool(value.get("approx_location", True)) or "aproximada" in str(source).lower(),
+            "approx_location": bool(value.get("approx_location", True)),
         }
     return out
 
 
 def _catalog_scores():
-    catalog = leer_json(SENSOR_CATALOG_FILE) or {}
+    catalog = read_json(SENSOR_CATALOG_FILE) or {}
     sensors = catalog.get("sensors", {}) if isinstance(catalog, dict) else {}
     out = {}
     for key, s in sensors.items():
@@ -262,55 +250,46 @@ def _catalog_scores():
 
 def _sensor_locations_from_runtime():
     locations = {}
-    runtime = _runtime_cells()
-    for cell_id, cell in runtime.items():
-        for group_name in ("primary", "reserve_or_context", "reservas"):
-            items = cell.get(group_name, []) or []
-            for item in items:
-                key = item.get("code") or _sensor_key(item.get("red"), item.get("estacion"), item.get("canal"))
-                lat = _as_float(item.get("lat"), None)
-                lon = _as_float(item.get("lon"), None)
-                if key and lat is not None and lon is not None:
-                    locations[key] = {
-                        "lat": lat,
-                        "lon": lon,
-                        "name": item.get("site") or item.get("nombre") or key,
-                        "locality": item.get("localidad") or item.get("locality") or item.get("site") or item.get("nombre") or key,
-                        "cell_id": cell_id,
-                        "direction": item.get("direction") or cell.get("direction"),
-                        "provider": item.get("provider") or item.get("server_name"),
-                    }
+
     import glob
     for inv_path in sorted(glob.glob("config/auto_cell_*_inventory.json")):
-        auto_inv = leer_json(inv_path) or {}
-        for group_name in ("sensors", "sensores", "reserves", "reservas"):
-            for item in auto_inv.get(group_name, []) or []:
-                key = _sensor_key(item.get("network", item.get("red")), item.get("station", item.get("estacion")), item.get("channel", item.get("canal")))
-                lat = _as_float(item.get("lat"), None)
-                lon = _as_float(item.get("lon"), None)
-                if key and lat is not None and lon is not None:
-                    locations[key] = {
-                        "lat": lat,
-                        "lon": lon,
-                        "name": item.get("name") or item.get("nombre") or item.get("site") or key,
-                        "locality": item.get("locality") or item.get("localidad") or item.get("name") or item.get("nombre") or item.get("site") or key,
-                        "cell_id": auto_inv.get("cell_id", "auto_cell_01"),
-                        "direction": item.get("direction") or auto_inv.get("direction"),
-                        "provider": item.get("provider") or auto_inv.get("server_name"),
-                        "source": "auto_cell_inventory",
-                    }
+        auto_inv = read_json(inv_path) or {}
+        for item in auto_inv.get("sensors", []) or []:
+            key = _sensor_key(
+                item.get("network"),
+                item.get("station"),
+                item.get("channel"),
+            )
+            lat = _as_float(item.get("lat"), None)
+            lon = _as_float(item.get("lon"), None)
 
-    candidate = leer_json("config/candidate_inventory.json") or {}
-    for item in candidate.get("sensores", []) or []:
-        key = _sensor_key(item.get("network", item.get("red")), item.get("station", item.get("estacion")), item.get("channel", item.get("canal")))
+            if key and lat is not None and lon is not None:
+                locations[key] = {
+                    "lat": lat,
+                    "lon": lon,
+                    "name": item.get("name") or item.get("site") or key,
+                    "locality": item.get("locality") or item.get("name") or item.get("site") or key,
+                    "cell_id": auto_inv.get("cell_id", "auto_cell_01"),
+                    "direction": item.get("direction") or auto_inv.get("direction"),
+                    "provider": item.get("provider") or auto_inv.get("server_name"),
+                    "source": "auto_cell_inventory",
+                }
+
+    candidate = read_json("config/candidate_inventory.json") or {}
+    for item in candidate.get("sensors", []) or []:
+        key = _sensor_key(
+            item.get("network"),
+            item.get("station"),
+            item.get("channel"),
+        )
         lat = _as_float(item.get("lat"), None)
         lon = _as_float(item.get("lon"), None)
         if key and lat is not None and lon is not None:
             locations.setdefault(key, {
                 "lat": lat,
                 "lon": lon,
-                "name": item.get("name") or item.get("nombre") or item.get("site") or key,
-                "locality": item.get("locality") or item.get("localidad") or item.get("name") or item.get("nombre") or item.get("site") or key,
+                "name": item.get("name") or item.get("site") or key,
+                "locality": item.get("locality") or item.get("name") or item.get("site") or key,
                 "cell_id": "candidate_inventory",
                 "direction": item.get("direction"),
                 "provider": item.get("provider") or item.get("source_provider"),
@@ -322,36 +301,35 @@ def _sensor_locations_from_runtime():
 def _live_sensors_from_states():
     sensors = {}
 
-    local_state = leer_json(LOCAL_STATE_FILE) or {}
-    zona = (local_state.get("zonas", {}) or {}).get("cordillera_cuyo_adaptativa", {})
-    for key, s in (_pick_dict(zona, "sensors", "sensores") or {}).items():
-        sensor_id = s.get("sensor_id", s.get("clave")) or key
-        role = str(s.get("role", s.get("rol", ""))).strip().lower()
-        is_observer = role == "observador_regional"
+    local_state = read_json(LOCAL_STATE_FILE) or {}
+    zone = (local_state.get("zones", {}) or {}).get("local_adaptive_zone", {})
+    for key, s in (zone.get("sensors", {}) or {}).items():
+        sensor_id = s.get("sensor_id") or key
+        role = str(s.get("role", "")).strip().lower()
+        is_observer = role == "regional_observer"
 
         sensors[sensor_id] = {
             "sensor_id": sensor_id,
             "cell_id": "regional_observers" if is_observer else "cell_00",
-            "cell_label": "Observadores" if is_observer else "Local",
-            "name": s.get("name", s.get("nombre")) or sensor_id,
-            "locality": s.get("locality", s.get("localidad")) or s.get("name", s.get("nombre")) or sensor_id,
-            "localidad": s.get("locality", s.get("localidad")) or s.get("name", s.get("nombre")) or sensor_id,
-            "network": s.get("network", s.get("red")),
-            "station": s.get("station", s.get("estacion")),
-            "channel": s.get("channel", s.get("canal")),
-            "role": s.get("role", s.get("rol")),
-            "state": s.get("sensor_state", s.get("estado_sensor", "active")),
-            "calibrated": bool(s.get("calibrated", s.get("calibrado", False))),
+            "cell_label": "Observers" if is_observer else "Local",
+            "name": s.get("name") or sensor_id,
+            "locality": s.get("locality") or s.get("name") or sensor_id,
+            "network": s.get("network"),
+            "station": s.get("station"),
+            "channel": s.get("channel"),
+            "role": s.get("role"),
+            "state": s.get("sensor_state", "active"),
+            "calibrated": bool(s.get("calibrated", False)),
             "flag": bool(s.get("flag", False)),
-            "latency_seconds": _as_float(s.get("latency_seconds", s.get("latency_segundos", s.get("latencia_segundos"))), None),
+            "latency_seconds": _as_float(s.get("latency_seconds"), None),
             "ratio": _as_float(s.get("ratio"), None),
-            "distance_km": _as_float(s.get("distance_km", s.get("distancia_km")), None),
+            "distance_km": _as_float(s.get("distance_km"), None),
             "has_location": False,
         }
 
     import glob
     for state_path in sorted(glob.glob("runtime/auto_cell_*_state.json")):
-        auto_state = leer_json(state_path) or {}
+        auto_state = read_json(state_path) or {}
         auto_label = auto_state.get("cell_id") or state_path.split("/")[-1].replace("_state.json", "")
         for key, s in (_pick_dict(auto_state, "sensors") or {}).items():
             sensor_id = s.get("key") or key
@@ -362,7 +340,6 @@ def _live_sensors_from_states():
                 "cell_label": auto_label,
                 "name": name,
                 "locality": name,
-                "localidad": name,
                 "network": s.get("network"),
                 "station": s.get("station"),
                 "channel": s.get("channel"),
@@ -397,10 +374,9 @@ def _live_sensors_from_states():
                 "location_source": source,
                 "approx_location": approx,
                 "locality": loc.get("locality") or loc.get("name"),
-                "localidad": loc.get("locality") or loc.get("name"),
             })
-            # Presentación humana para el JSON público: lat/lon juntos.
-            # Se mantienen lat/lon planos por compatibilidad con el mapa web actual.
+            # Public JSON representation: lat/lon grouped together.
+            # Flat lat/lon fields are retained for the current web map.
             if lat is not None and lon is not None:
                 s["coords"] = {
                     "lat": lat,
@@ -421,30 +397,6 @@ def _live_sensors_from_states():
     return list(sensors.values())[:MAX_PUBLIC_SENSORS]
 
 
-def _regional_observer_count(sensors):
-    count = 0
-    calibrated = 0
-    for s in sensors or []:
-        role = str(s.get("role") or s.get("rol") or "").strip().lower()
-        state = str(s.get("state") or s.get("sensor_state") or s.get("estado") or "").strip().lower()
-        if role == "observador_regional" and state in ("active", "activo", "vivo"):
-            count += 1
-            if bool(s.get("calibrated", s.get("calibrado", False))):
-                calibrated += 1
-    return count, calibrated
-
-
-def _class_from_count(n):
-    n = _as_int(n, 0)
-    if n >= 6:
-        return "alta"
-    if n >= 4:
-        return "buena"
-    if n >= 2:
-        return "mínima"
-    if n == 1:
-        return "regular"
-    return "en espera"
 
 
 def _public_display_cells(display_cells, sensors=None):
@@ -453,59 +405,40 @@ def _public_display_cells(display_cells, sensors=None):
     local_sensors = [
         s for s in sensors
         if s.get("cell_id") == "cell_00"
-        and str(s.get("state") or "").lower() in ("active", "activo", "vivo")
+        and str(s.get("state") or "").lower() == "active"
     ]
     local_calibrated = [
         s for s in local_sensors
-        if bool(s.get("calibrated", s.get("calibrado", False)))
+        if bool(s.get("calibrated", False))
     ]
 
     for c in display_cells or []:
-        short = c.get("short_label") or c.get("direction_label") or c.get("cell_id") or "Zona"
+        short = c.get("short_label") or c.get("direction_label") or c.get("cell_id") or "Zone"
         if short != "Local":
             short = _direction_name(short)
 
         is_local = c.get("cell_id") == "cell_00"
-        sensors_active = len(local_sensors) if is_local else _as_int(c.get("sensors_active", 0))
-        sensors_calibrated = len(local_calibrated) if is_local else _as_int(c.get("sensors_calibrated", 0))
 
         out.append({
             "cell_id": c.get("cell_id"),
             "label": "Local" if is_local else (c.get("label") or short),
             "role": c.get("role"),
             "class": c.get("class"),
-            "class_label": _class_from_count(sensors_active) if is_local else _human_class(c.get("class_label")),
+            "class_label": _human_class(c.get("class_label") or c.get("class")),
             "state": c.get("state"),
             "state_label": _human_state(c.get("state_label")),
             "fresh": bool(c.get("fresh", False)),
-            "sensors_active": sensors_active,
-            "sensors_calibrated": sensors_calibrated,
+            "sensors_active": _as_int(c.get("sensors_active", 0)),
+            "sensors_calibrated": _as_int(c.get("sensors_calibrated", 0)),
             "warning_seconds": _as_float(c.get("warning_seconds"), None),
             "direction_label": c.get("direction_label"),
-        })
-
-    observer_count, observer_calibrated = _regional_observer_count(sensors)
-    if observer_count > 0:
-        out.append({
-            "cell_id": "regional_observers",
-            "label": "Observadores",
-            "role": "regional_observer",
-            "class": "observer_context",
-            "class_label": "contexto",
-            "state": "normal",
-            "state_label": "contexto",
-            "fresh": True,
-            "sensors_active": observer_count,
-            "sensors_calibrated": observer_calibrated,
-            "warning_seconds": None,
-            "direction_label": None,
         })
 
     return out[:6]
 
 
 def _public_cells_for_map(fused_cells):
-    runtime = _runtime_cells()
+    runtime = _cell_inventories()
     out = []
     for cell_id, c in (fused_cells or {}).items():
         rc = runtime.get(cell_id, {}) if isinstance(runtime, dict) else {}
@@ -530,7 +463,6 @@ def _public_cells_for_map(fused_cells):
         state_raw = (
             c.get("display_state_label")
             or c.get("state_label")
-            or c.get("estado")
             or c.get("state")
         )
         out.append({
@@ -541,7 +473,7 @@ def _public_cells_for_map(fused_cells):
             "state_label": _human_state(state_raw),
             "lat": lat,
             "lon": lon,
-            "sensors_active": _as_int(_pick(c, "active_sensors", "sensores_activos", c.get("sensors_active", 0))),
+            "sensors_active": _as_int(c.get("active_sensors", c.get("sensors_active", 0))),
             "warning_seconds": _as_float(c.get("effective_warning_seconds", c.get("warning_seconds", 0)), 0),
             "direction_label": direction,
         })
@@ -567,7 +499,7 @@ def _map_center(sensors, cells):
 
 def _active_sensor_public(s):
     return str(s.get("state") or "").lower() in (
-        "active", "activo", "vivo", "calibrating", "calibrando"
+        "active", "calibrating"
     )
 
 
@@ -613,7 +545,7 @@ def _public_cells_from_display(public_cells, sensors, center):
         active_count = len([s for s in items if _active_sensor_public(s)])
         calibrated_count = len([
             s for s in items
-            if bool(s.get("calibrated", s.get("calibrado", False)))
+            if bool(s.get("calibrated", False))
         ])
 
         if active_count == 0:
@@ -653,25 +585,9 @@ def build_public_live():
     center = system_center()
     cells_map = _public_cells_from_display(public_cells, sensors, center)
 
-    local_active_count = sum(
-        1 for s in sensors
-        if s.get("cell_id") == "cell_00"
-        and str(s.get("state") or "").lower() in ("active", "activo", "vivo")
-    )
-    local_calibrated_count = sum(
-        1 for s in sensors
-        if s.get("cell_id") == "cell_00"
-        and bool(s.get("calibrated", s.get("calibrado", False)))
-    )
-
-    for c in cells_map:
-        if c.get("cell_id") == "cell_00":
-            c["sensors_active"] = local_active_count
-            c["class_label"] = _class_from_count(local_active_count)
-
     map_center = _map_center(sensors, cells_map)
 
-    alert_active = bool(_pick(event, "sound", "sonar", False)) or str(event.get("level", "normal")).lower() not in ("normal", "observacion")
+    alert_active = bool(event.get("sound", False)) or str(event.get("level", "normal")).lower() != "normal"
     poll_ms = 1500 if alert_active else 5000
 
     display_public = {
@@ -683,10 +599,10 @@ def build_public_live():
     }
 
     return {
-        "sistema": "Cuyum",
-        "modo": "public_live_v1_2",
+        "system": "Cuyum",
+        "mode": "public_live_v1_2",
         "experimental": True,
-        "updated_at": fused.get("ultima_actualizacion", ahora_iso()),
+        "updated_at": fused.get("updated_at", now_iso()),
         "poll": {
             "normal_ms": 5000,
             "alert_ms": 1500,
@@ -700,19 +616,19 @@ def build_public_live():
             "cells_active": net.get("cells_active", 0),
             "cells_configured": net.get("cells_configured", 0),
             "sensors_active": len([s for s in sensors if _active_sensor_public(s)]),
-            "sensors_calibrated": len([s for s in sensors if bool(s.get("calibrated", s.get("calibrado", False)))]),
+            "sensors_calibrated": len([s for s in sensors if bool(s.get("calibrated", False))]),
         },
         "alert": {
             "active": alert_active,
             "level": event.get("level", "normal"),
             "message": display_public["message"],
-            "sound": bool(_pick(event, "sound", "sonar", False)),
-            "buzzer_seconds": _as_int(event.get("buzzer_segundos", 0)),
+            "sound": bool(event.get("sound", False)),
+            "buzzer_seconds": _as_int(event.get("buzzer_seconds", 0)),
         },
         "map": map_center,
         "system_center": center,
         "map_center": map_center,
         "cells": cells_map,
         "sensors": sensors,
-        "notice": "Red experimental. No reemplaza fuentes oficiales ni procedimientos institucionales.",
+        "notice": "Experimental network. It does not replace official sources or institutional procedures.",
     }
