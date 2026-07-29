@@ -184,6 +184,24 @@ class CuyumHandler(BaseHTTPRequestHandler):
             status=404,
         )
 
+    def serve_web(self):
+        path = TEMPLATE_DIR / "web.html"
+
+        if path.exists():
+            self.send_bytes(
+                file_bytes(path),
+                content_type="text/html; charset=utf-8",
+            )
+            return
+
+        self.send_json(
+            {
+                "error": "web_page_not_found",
+                "checked": str(path.relative_to(BASE_DIR)),
+            },
+            status=404,
+        )
+
     def do_GET(self):
         parsed = urlparse(self.path)
         path = parsed.path
@@ -191,7 +209,7 @@ class CuyumHandler(BaseHTTPRequestHandler):
 
         try:
             if path == "/":
-                self.redirect("/app")
+                self.redirect("/web")
                 return
 
             if path == "/health":
@@ -212,6 +230,13 @@ class CuyumHandler(BaseHTTPRequestHandler):
             if path in ("/app", "/app/"):
                 self.serve_live()
                 return
+
+
+            if path in ("/web", "/web/"):
+                self.serve_web()
+                return
+
+
 
             if path.startswith("/static/"):
                 self.serve_static(path)
