@@ -48,3 +48,17 @@ secrets/
 runtime/telegram_notice_state.json
 setup.env
 firmware/esp32/cuyum_esp32/config.h
+
+# Local historical archives
+snapshots_v1_2/
+local_archive/
+
+# Python generated files
+__pycache__/
+*.pyc
+
+# Temporary backup files
+*.bak
+*.backup_*
+*.broken_*
+*.before_*
