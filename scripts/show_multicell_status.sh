@@ -7,7 +7,7 @@ if [ -f "venv/bin/activate" ]; then
   source venv/bin/activate
 fi
 
-PYTHONPATH=app python3 - <<'PY'
+PYTHONPATH=app ./venv/bin/python - <<'PY'
 from multicell_fusion import build_node_poll, build_multicell_state
 
 def safe(data, key, default="-"):

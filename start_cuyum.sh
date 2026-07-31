@@ -34,7 +34,7 @@ mkdir -p runtime runtime/logs
 
 echo "[3/8] Applying retention cleanup..."
 if [ -f app/retention_cleaner.py ]; then
-  ./venv/bin/./venv/bin/python app/retention_cleaner.py || echo "WARNING: retention cleanup failed"
+  ./venv/bin/python app/retention_cleaner.py || echo "WARNING: retention cleanup failed"
 fi
 
 echo "[4/8] Preparing auto cell inventories..."
@@ -42,7 +42,7 @@ echo "Using existing config/auto_cell_*_inventory.json microcell inventories"
 ls config/auto_cell_*_inventory.json 2>/dev/null || echo "WARNING: no auto microcell inventories found" 
 
 echo "[5/8] Starting cell_00 reader..."
-./venv/bin/./venv/bin/python -u app/cell_00_seedlink_reader.py > runtime/logs/logs_lector.txt 2>&1 &
+./venv/bin/python -u app/cell_00_seedlink_reader.py > runtime/logs/logs_lector.txt 2>&1 &
 sleep 2
 
 echo "[6/8] Starting auto cell readers..."
@@ -51,7 +51,7 @@ for inv in config/auto_cell_*_inventory.json; do
   base=$(basename "$inv")
   cid=${base%_inventory.json}
   echo "Starting $cid"
-  ./venv/bin/./venv/bin/python -u app/auto_cell_seedlink_reader.py "$inv" "runtime/${cid}_state.json" > "runtime/logs/logs_${cid}.txt" 2>&1 &
+  ./venv/bin/python -u app/auto_cell_seedlink_reader.py "$inv" "runtime/${cid}_state.json" > "runtime/logs/logs_${cid}.txt" 2>&1 &
 done
 sleep 2
 
@@ -63,7 +63,7 @@ else
 fi
 
 if [ -f app/sensor_auditor.py ]; then
-  ./venv/bin/./venv/bin/python -u app/sensor_auditor.py > runtime/logs/logs_sensor_auditor.txt 2>&1 &
+  ./venv/bin/python -u app/sensor_auditor.py > runtime/logs/logs_sensor_auditor.txt 2>&1 &
 else
   echo "WARNING: app/sensor_auditor.py not found"
 fi

@@ -9,7 +9,7 @@ do
     echo "SeedLink review: $(date -u)"
     echo "=============================================="
 
-    python -u app/seedlink_discovery.py
+    ./venv/bin/python -u app/seedlink_discovery.py
 
     echo "Waiting 15 minutes for the next review..."
     echo ""
