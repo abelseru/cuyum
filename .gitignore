@@ -47,3 +47,4 @@ auto_cells_report.txt
 secrets/
 runtime/telegram_notice_state.json
 setup.env
+firmware/esp32/cuyum_esp32/config.h
