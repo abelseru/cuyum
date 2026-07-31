@@ -1,0 +1,18 @@
+{
+  "directions": {
+    "north": "norte",
+    "northeast": "noreste",
+    "east": "este",
+    "southeast": "sureste",
+    "south": "sur",
+    "southwest": "suroeste",
+    "west": "oeste",
+    "northwest": "noroeste",
+    "center": "centro"
+  },
+  "telegram": {
+    "detected_signals": "Señales detectadas:\n[dirección] - [segundos] segundos restantes.",
+    "experimental_record": "Registro automático y experimental.",
+    "not_official": "Cuyum no constituye información oficial."
+  }
+}

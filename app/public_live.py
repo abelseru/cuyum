@@ -1,9 +1,11 @@
 import json
 import os
+import sys
 from datetime import datetime, timezone
 
 from multicell_fusion import build_multicell_state
 import event_journal
+import telegram_notice
 
 LOCAL_STATE_FILE = "runtime/state_cell_00_seedlink.json"
 AUTO_CELL_01_STATE_FILE = "runtime/auto_cell_01_state.json"
@@ -567,10 +569,18 @@ def _public_cells_from_display(public_cells, sensors, center):
 
     return out
 
-
 def build_public_live():
     fused = build_multicell_state()
     event_journal.record_fused_snapshot(fused)
+
+    try:
+        telegram_notice.publish_fused_notice(fused)
+    except Exception as error:
+        print(
+            f"Telegram notice error: {error}",
+            file=sys.stderr,
+        )
+
     net = fused.get("network", {})
     event = fused.get("event", {})
     display = fused.get("display", {})
