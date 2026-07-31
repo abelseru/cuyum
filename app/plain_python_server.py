@@ -5,6 +5,8 @@ import json
 import mimetypes
 import time
 import traceback
+from collections import deque
+from threading import Lock
 
 from multicell_fusion import build_node_poll, build_multicell_state
 from public_live import build_public_live
@@ -21,6 +23,48 @@ STATIC_DIR = BASE_DIR / "static"
 
 CACHE_SECONDS = 1.0
 CACHE = {}
+
+JSON_REQUEST_TIMES = deque()
+JSON_REQUEST_LOCK = Lock()
+
+
+def record_json_request():
+    now = time.monotonic()
+
+    with JSON_REQUEST_LOCK:
+        JSON_REQUEST_TIMES.append(now)
+
+        while JSON_REQUEST_TIMES and now - JSON_REQUEST_TIMES[0] > 60.0:
+            JSON_REQUEST_TIMES.popleft()
+
+
+def json_activity_snapshot():
+    now = time.monotonic()
+
+    with JSON_REQUEST_LOCK:
+        while JSON_REQUEST_TIMES and now - JSON_REQUEST_TIMES[0] > 60.0:
+            JSON_REQUEST_TIMES.popleft()
+
+        last_second = sum(
+            1
+            for timestamp in JSON_REQUEST_TIMES
+            if now - timestamp <= 1.0
+        )
+
+        last_5_seconds = sum(
+            1
+            for timestamp in JSON_REQUEST_TIMES
+            if now - timestamp <= 5.0
+        )
+
+        last_minute = len(JSON_REQUEST_TIMES)
+
+    return {
+        "json_requests_last_second": last_second,
+        "json_requests_last_5_seconds": last_5_seconds,
+        "json_requests_last_minute": last_minute,
+        "equivalent_active_clients": last_5_seconds,
+    }
 
 
 def cached(key, builder):
@@ -243,7 +287,23 @@ class CuyumHandler(BaseHTTPRequestHandler):
                 return
 
             if path == "/json":
-                self.send_json(cached("public_live", build_public_live))
+                record_json_request()
+
+                payload = dict(
+                    cached("public_live", build_public_live)
+                )
+
+                existing_statistics = payload.get("statistics", {})
+
+                if not isinstance(existing_statistics, dict):
+                    existing_statistics = {}
+
+                payload["statistics"] = {
+                    **existing_statistics,
+                    **json_activity_snapshot(),
+                }
+
+                self.send_json(payload)
                 return
 
 
