@@ -53,6 +53,27 @@ function uiNetworkLabel(value) {
   };
   return map[text] || value || "red Cuyum";
 }
+
+function uiSensorState(value) {
+  const text = String(value || "").trim().toLowerCase();
+
+  const map = {
+    "active": "activo",
+    "inactive": "inactivo",
+    "waiting": "en espera",
+    "listening": "en escucha",
+    "calibrating": "calibrando",
+    "high_latency": "latencia alta",
+    "high latency": "latencia alta",
+    "disconnected": "desconectado",
+    "candidate": "candidato",
+    "observed": "observado",
+    "reliable": "confiable"
+  };
+
+  return map[text] || value || "activo";
+}
+
 function uiDirectionLabel(value) {
   const text = String(value || "").trim().toLowerCase();
   const map = {
@@ -434,7 +455,7 @@ function displayCellId(cell, i) {
       'Sensor';
     const code = sensor.sensor_id || '';
     const zona = isRegionalObserver(sensor) ? 'Observadores' : (sensor.cell_label || sensor.cell_id || 'Zona');
-    const estado = sensor.state || 'activo';
+    const estado = uiSensorState(sensor.state);
     const calidad = sensorQualityLabel(sensor);
     const ubicacion = sensorLocationLabel(sensor);
     const latencia = Number(sensor.latency_seconds);

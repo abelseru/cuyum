@@ -46,3 +46,4 @@ auto_cells_report.txt
 *.zip
 secrets/
 runtime/telegram_notice_state.json
+setup.env
