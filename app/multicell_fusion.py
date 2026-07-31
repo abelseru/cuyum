@@ -634,6 +634,59 @@ def build_node_poll(node_id="node_01"):
     local = cells.get("cell_00", {})
     auto01 = cells.get("auto_cell_01", {})
 
+    early_flag_ids = set(
+        event.get("early_flags", []) or []
+    )
+
+    attention_cell = None
+
+    for cell in display_cells:
+        if cell.get("cell_id") in early_flag_ids:
+            attention_cell = cell
+            break
+
+    if attention_cell is None:
+        confirming_cells = [
+            cell
+            for cell in display_cells
+            if int(cell.get("confirming", 0) or 0) > 0
+        ]
+
+        if confirming_cells:
+            attention_cell = max(
+                confirming_cells,
+                key=lambda cell: int(
+                    cell.get("confirming", 0) or 0
+                ),
+            )
+
+    attention_direction = ""
+    attention_direction_label = ""
+    attention_confirming = 0
+
+    if attention_cell is not None:
+        attention_direction = str(
+            attention_cell.get("direction")
+            or attention_cell.get("short_label")
+            or attention_cell.get("cell_id")
+            or ""
+        )
+
+        attention_direction_label = str(
+            attention_cell.get("direction_label")
+            or attention_cell.get("short_label")
+            or attention_direction
+        )
+
+        attention_confirming = int(
+            attention_cell.get("confirming", 0) or 0
+        )
+
+    if attention_confirming <= 0:
+        attention_confirming = int(
+            net.get("total_confirming_stations", 0) or 0
+        )
+
     response = {
         # Canonical node payload.
         "node_id": node_id,
@@ -650,6 +703,13 @@ def build_node_poll(node_id="node_01"):
         "auto_cell_01_active_sensors": auto01.get("active_sensors", 0),
         "auto_cell_01_warning_seconds": auto01.get("effective_warning_seconds", 0),
         "ratio_max": net["ratio_max"],
+
+        "attention": {
+            "active": bool(event["sound"]),
+            "direction": attention_direction,
+            "direction_label": attention_direction_label,
+            "confirming_sensors": attention_confirming,
+        },
 
         # Multicell display fields.
         "display": display,

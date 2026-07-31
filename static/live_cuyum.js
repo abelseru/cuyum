@@ -553,25 +553,70 @@ function displayCellId(cell, i) {
     $('mapSummary').textContent = `${sensors.length} sensores en mapa · ${realZones.length} zonas${observerText}${missingText}`;
   }
 
-  function maybeBeep(data) {
-    const alert = data.alert || {};
-    if (!audioEnabled || !alert.sound) return;
-    const now = Date.now();
-    if (now - lastAlertBeep < 2500) return;
-    lastAlertBeep = now;
-    try {
-      const ctx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-      audioCtx = ctx;
+  function playCuyumFiveBeepPattern() {
+    const AudioContext =
+      window.AudioContext || window.webkitAudioContext;
+
+    if (!AudioContext) return;
+
+    const ctx = audioCtx || new AudioContext();
+    audioCtx = ctx;
+
+    for (let i = 0; i < 5; i++) {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = 'sine';
+      const start = ctx.currentTime + i * 0.28;
+
+      osc.type = "square";
       osc.frequency.value = 880;
-      gain.gain.value = 0.08;
+
+      gain.gain.setValueAtTime(
+        0.0001,
+        start
+      );
+
+      gain.gain.exponentialRampToValueAtTime(
+        0.22,
+        start + 0.02
+      );
+
+      gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        start + 0.16
+      );
+
       osc.connect(gain);
       gain.connect(ctx.destination);
-      osc.start();
-      setTimeout(() => osc.stop(), 220);
-    } catch (e) {}
+
+      osc.start(start);
+      osc.stop(start + 0.18);
+    }
+  }
+
+  function maybeBeep(data) {
+    const alert = data.alert || {};
+    const soundActive = Boolean(alert.sound);
+
+    if (!soundActive) {
+      lastAlertBeep = 0;
+      return;
+    }
+
+    if (!audioEnabled) return;
+
+    // El patrón ya fue reproducido durante este episodio.
+    if (lastAlertBeep !== 0) return;
+
+    lastAlertBeep = Date.now();
+
+    try {
+      playCuyumFiveBeepPattern();
+    } catch (error) {
+      console.warn(
+        "Cuyum sound unavailable",
+        error
+      );
+    }
   }
 
   async function tick() {
@@ -648,30 +693,12 @@ function displayCellId(cell, i) {
 
   function playSimulationSound() {
     try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-
-      const ctx = new AudioContext();
-
-      for (let i = 0; i < 5; i++) {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-
-        osc.type = "square";
-        osc.frequency.value = 880;
-
-        gain.gain.setValueAtTime(0.0001, ctx.currentTime + i * 0.28);
-        gain.gain.exponentialRampToValueAtTime(0.22, ctx.currentTime + i * 0.28 + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + i * 0.28 + 0.16);
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-
-        osc.start(ctx.currentTime + i * 0.28);
-        osc.stop(ctx.currentTime + i * 0.28 + 0.18);
-      }
-    } catch (err) {
-      console.warn("simulation sound unavailable", err);
+      playCuyumFiveBeepPattern();
+    } catch (error) {
+      console.warn(
+        "simulation sound unavailable",
+        error
+      );
     }
   }
 
