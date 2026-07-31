@@ -24,7 +24,7 @@ cells = state.get("cells", {})
 display_cells = poll.get("display_cells", [])
 
 print("==============================================")
-print("        CUYUM v1.2 - MULTICELL STATUS")
+print("        CUYUM 1.3 - MULTICELL STATUS")
 print("==============================================")
 print()
 

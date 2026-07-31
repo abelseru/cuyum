@@ -17,11 +17,7 @@ logs_*.txt
 
 # Local development history
 local_archive/
-snapshots_v1_2/
 snapshots_live_final_v1/
-quarantine_v1_2/
-backups_v1_2_semantica/
-backups_v1_2b_english_core/
 
 # Backups and temporary files
 *.backup*
@@ -34,7 +30,6 @@ config/disabled*/
 
 # Local reports and audits
 audits/
-reports_v1_2/
 REPORTE_*.md
 auto_cells_report.json
 auto_cells_report.txt
@@ -50,15 +45,12 @@ setup.env
 firmware/esp32/cuyum_esp32/config.h
 
 # Local historical archives
-snapshots_v1_2/
-local_archive/
 
 # Python generated files
-__pycache__/
-*.pyc
 
 # Temporary backup files
-*.bak
 *.backup_*
 *.broken_*
 *.before_*
+# Runtime logs
+runtime/logs/

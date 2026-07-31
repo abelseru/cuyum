@@ -38,13 +38,13 @@
       "local_sector": "SW",
       "_has_geo_override": true,
       "locality": "Bocatoma Colorado",
-      "reviewed_at": "2026-07-28T00:53:11.497764+00:00",
+      "reviewed_at": "2026-07-31T13:20:55.453581+00:00",
       "availability_state": "active",
       "trace_id_last_revision": "C1.MT08..BHZ",
-      "packets_last_revision": 5,
-      "approx_latency_seconds": 4.5,
+      "packets_last_revision": 4,
+      "approx_latency_seconds": 10.8,
       "sampling_rate_hz": 40.0,
-      "mean_review_energy": 342.97,
+      "mean_review_energy": 877.98,
       "review_note": "recent packets received"
     },
     {
@@ -65,13 +65,13 @@
       "local_sector": "SE",
       "_has_geo_override": true,
       "locality": "La Paz / INPRES",
-      "reviewed_at": "2026-07-28T00:53:11.497764+00:00",
+      "reviewed_at": "2026-07-31T13:20:55.453581+00:00",
       "availability_state": "active",
       "trace_id_last_revision": "RI.LPCA..EHZ",
       "packets_last_revision": 8,
-      "approx_latency_seconds": 11.6,
+      "approx_latency_seconds": 11.4,
       "sampling_rate_hz": 100.0,
-      "mean_review_energy": 40.67,
+      "mean_review_energy": 47.69,
       "review_note": "recent packets received"
     },
     {
@@ -92,13 +92,13 @@
       "local_sector": "W",
       "_has_geo_override": true,
       "locality": "Olivares",
-      "reviewed_at": "2026-07-28T00:53:11.497764+00:00",
+      "reviewed_at": "2026-07-31T13:20:55.453581+00:00",
       "availability_state": "active",
       "trace_id_last_revision": "C1.MT04..BHZ",
       "packets_last_revision": 4,
-      "approx_latency_seconds": 4.0,
+      "approx_latency_seconds": 5.1,
       "sampling_rate_hz": 40.0,
-      "mean_review_energy": 434.36,
+      "mean_review_energy": 1724.17,
       "review_note": "recent packets received"
     },
     {
@@ -119,13 +119,13 @@
       "local_sector": "N",
       "_has_geo_override": true,
       "locality": "San Juan / IGSV",
-      "reviewed_at": "2026-07-28T00:53:11.497764+00:00",
+      "reviewed_at": "2026-07-31T13:20:55.453581+00:00",
       "availability_state": "active",
       "trace_id_last_revision": "WA.ZON..HHZ",
-      "packets_last_revision": 14,
-      "approx_latency_seconds": 2.2,
+      "packets_last_revision": 16,
+      "approx_latency_seconds": 2.7,
       "sampling_rate_hz": 100.0,
-      "mean_review_energy": 372.06,
+      "mean_review_energy": 353.4,
       "review_note": "recent packets received"
     }
   ],
@@ -139,6 +139,6 @@
     "absolute_max": 18,
     "final_total": 16
   },
-  "updated_at": "2026-07-28T00:53:11.497764+00:00",
+  "updated_at": "2026-07-31T13:20:55.453581+00:00",
   "review_duration_seconds": 60
 }

@@ -1,4 +1,4 @@
-# Cuyum v1.2 - HTTP interfaces
+# Cuyum 1.3 - HTTP interfaces
 
 Default server: http://127.0.0.1:5050
 

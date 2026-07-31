@@ -1,4 +1,4 @@
-# Cuyum v1.2
+# Cuyum 1.3
 
 Cuyum es un sistema experimental de monitoreo sísmico multicelda basado en datos SeedLink.
 
@@ -38,7 +38,7 @@ python -m pip install -r requirements.txt
 ## Arranque
 
 ```bash
-./start_cuyum_v1_2.sh
+./start_cuyum.sh
 ```
 
 Monitor local:
@@ -50,7 +50,7 @@ http://127.0.0.1:5050/app
 ## Detención
 
 ```bash
-./stop_cuyum_v1_2.sh
+./stop_cuyum.sh
 ```
 
 ## Recentrar Cuyum
@@ -62,7 +62,7 @@ http://127.0.0.1:5050/app
 ## Estado multicelda
 
 ```bash
-./scripts/show_multicell_status_v1_2.sh
+./scripts/show_multicell_status.sh
 ```
 
 ## Rutas principales
@@ -87,7 +87,7 @@ Internas / dispositivos:
 ## Estructura
 
 ```text
-cuyum_v_1_2/
+cuyum/
 ├── app/
 ├── config/
 ├── docs/
@@ -95,8 +95,8 @@ cuyum_v_1_2/
 ├── static/
 ├── templates/
 ├── requirements.txt
-├── start_cuyum_v1_2.sh
-└── stop_cuyum_v1_2.sh
+├── start_cuyum.sh
+└── stop_cuyum.sh
 ```
 
 `runtime/`, `runtime_logs/`, entornos virtuales, backups y archivos de desarrollo local no forman parte del repositorio.
@@ -109,7 +109,7 @@ Ver `docs/language.md`.
 
 ## Estado del proyecto
 
-Cuyum v1.2 es software experimental para educación, observación y validación técnica. No debe interpretarse como un sistema oficial de alerta sísmica.
+Cuyum 1.3 es software experimental para educación, observación y validación técnica. No debe interpretarse como un sistema oficial de alerta sísmica.
 
 ## Licencia
 

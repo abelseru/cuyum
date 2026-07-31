@@ -34,7 +34,7 @@ echo "Lon:    $LON"
 echo
 
 echo "[1/8] Stopping Cuyum..."
-./stop_cuyum_v1_2.sh || true
+./stop_cuyum.sh || true
 
 echo
 echo "[2/8] Resetting previous live state..."
@@ -101,7 +101,7 @@ cat runtime/live_inventory_organizer_report.txt || true
 
 echo
 echo "[7/8] Starting Cuyum..."
-./start_cuyum_v1_2.sh
+./start_cuyum.sh
 
 echo
 echo "[8/8] Waiting for initial stabilization..."

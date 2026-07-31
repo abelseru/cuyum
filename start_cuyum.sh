@@ -4,7 +4,8 @@ set -e
 cd "$(dirname "$0")"
 
 echo "=============================================="
-echo "        CUYUM v1.2"
+VERSION=$(cat VERSION 2>/dev/null || echo "unknown")
+echo "        CUYUM ${VERSION}"
 echo "=============================================="
 echo
 
@@ -25,12 +26,12 @@ pkill -f app/sensor_auditor.py 2>/dev/null || true
 sleep 2
 
 echo "[2/8] Preparing runtime directories and cleaning logs..."
-mkdir -p runtime runtime_logs
-: > runtime_logs/logs_cuyum_server.txt
-: > runtime_logs/logs_lector.txt
-: > runtime_logs/logs_auto_cell_01.txt
-: > runtime_logs/logs_descubridor.txt
-: > runtime_logs/logs_sensor_auditor.txt
+mkdir -p runtime runtime/logs
+: > runtime/logs/logs_cuyum_server.txt
+: > runtime/logs/logs_lector.txt
+: > runtime/logs/logs_auto_cell_01.txt
+: > runtime/logs/logs_descubridor.txt
+: > runtime/logs/logs_sensor_auditor.txt
 
 echo "[3/8] Applying retention cleanup..."
 if [ -f app/retention_cleaner.py ]; then
@@ -42,7 +43,7 @@ echo "Using existing config/auto_cell_*_inventory.json microcell inventories"
 ls config/auto_cell_*_inventory.json 2>/dev/null || echo "WARNING: no auto microcell inventories found" 
 
 echo "[5/8] Starting cell_00 reader..."
-python -u app/cell_00_seedlink_reader.py > runtime_logs/logs_lector.txt 2>&1 &
+python -u app/cell_00_seedlink_reader.py > runtime/logs/logs_lector.txt 2>&1 &
 sleep 2
 
 echo "[6/8] Starting auto cell readers..."
@@ -51,19 +52,19 @@ for inv in config/auto_cell_*_inventory.json; do
   base=$(basename "$inv")
   cid=${base%_inventory.json}
   echo "Starting $cid"
-  python -u app/auto_cell_seedlink_reader.py "$inv" "runtime/${cid}_state.json" > "runtime_logs/logs_${cid}.txt" 2>&1 &
+  python -u app/auto_cell_seedlink_reader.py "$inv" "runtime/${cid}_state.json" > "runtime/logs/logs_${cid}.txt" 2>&1 &
 done
 sleep 2
 
 echo "[7/8] Starting discovery and auditor..."
 if [ -f scripts/periodic_discovery.sh ]; then
-  ./scripts/periodic_discovery.sh > runtime_logs/logs_descubridor.txt 2>&1 &
+  ./scripts/periodic_discovery.sh > runtime/logs/logs_descubridor.txt 2>&1 &
 else
   echo "WARNING: scripts/periodic_discovery.sh not found"
 fi
 
 if [ -f app/sensor_auditor.py ]; then
-  python -u app/sensor_auditor.py > runtime_logs/logs_sensor_auditor.txt 2>&1 &
+  python -u app/sensor_auditor.py > runtime/logs/logs_sensor_auditor.txt 2>&1 &
 else
   echo "WARNING: app/sensor_auditor.py not found"
 fi
@@ -71,7 +72,7 @@ sleep 2
 
 echo "[8/8] Starting Cuyum on port 5050..."
 python3 -m py_compile app/plain_python_server.py app/public_api_v1.py
-./venv/bin/python -u app/plain_python_server.py > runtime_logs/logs_cuyum_server.txt 2>&1 &
+./venv/bin/python -u app/plain_python_server.py > runtime/logs/logs_cuyum_server.txt 2>&1 &
 sleep 5
 
 echo
@@ -113,4 +114,4 @@ if [ -n "$LAN_IP" ]; then
 fi
 echo
 echo "To stop Cuyum:"
-echo "./stop_cuyum_v1_2.sh"
+echo "./stop_cuyum.sh"

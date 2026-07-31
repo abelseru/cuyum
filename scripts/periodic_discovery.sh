@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd ~/cuyum_v_1_2 || exit 1
+cd "$(dirname "$0")/.." || exit 1
 source venv/bin/activate
 
 while true

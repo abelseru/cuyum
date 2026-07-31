@@ -275,7 +275,7 @@ def main():
             inventory['_inventory_path'] = inv_path
 
             print('==============================================')
-            print('CUYUM v1.2 - AUTO_CELL_01 PARALLEL READER')
+            print('CUYUM 1.3 - AUTO CELL READER')
             print('Server:', server)
             print('Inventory:', inv_path)
             print('Output:', out_path)

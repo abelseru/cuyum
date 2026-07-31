@@ -610,7 +610,7 @@ def build_public_live():
 
     return {
         "system": "Cuyum",
-        "mode": "public_live_v1_2",
+        "mode": "public_live_v1_3",
         "experimental": True,
         "updated_at": fused.get("updated_at", now_iso()),
         "poll": {

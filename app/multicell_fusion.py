@@ -568,7 +568,7 @@ def build_multicell_state():
 
     return {
         "system": "Cuyum",
-        "mode": "multicell_fusion_v1_2_display_cells",
+        "mode": "multicell_fusion_v1_3_display_cells",
         "experimental": True,
         "warning": "Experimental network. It does not replace official sources or institutional procedures.",
         "updated_at": now_iso(),
@@ -582,7 +582,7 @@ def build_multicell_state():
             "single_sensor_event_policy": "observation_no_sound",
         },
         "display": {
-            "title": "Cuyum v1.2",
+            "title": "Cuyum 1.3",
             "network": network_label,
             "status": display_status,
             "message": display_message,

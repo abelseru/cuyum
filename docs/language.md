@@ -1,4 +1,4 @@
-# Convención de idioma de Cuyum v1.2
+# Convención de idioma de Cuyum 1.3
 
 Cuyum usa inglés para el código interno y español para la presentación pública.
 

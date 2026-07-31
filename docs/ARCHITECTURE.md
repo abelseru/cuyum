@@ -1,4 +1,4 @@
-# Cuyum v1.2 - Architecture
+# Cuyum 1.3 - Architecture
 
 ## Overview
 
