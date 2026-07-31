@@ -640,5 +640,11 @@ def build_public_live():
         "map_center": map_center,
         "cells": cells_map,
         "sensors": sensors,
+        "confirmed_multisignals": (
+            telegram_notice.confirmed_multisignals_snapshot()
+        ),
+        "telegram": (
+            telegram_notice.telegram_channel_snapshot()
+        ),
         "notice": "Experimental network. It does not replace official sources or institutional procedures.",
     }

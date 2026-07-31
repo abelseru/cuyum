@@ -139,8 +139,7 @@ El arranque debe comprobar, entre otras, estas rutas:
 200  http://127.0.0.1:5050/app
 200  http://127.0.0.1:5050/json
 200  http://127.0.0.1:5050/reg
-200  http://127.0.0.1:5050/api/node/poll?node_id=node_01
-200  http://127.0.0.1:5050/api/esp32/poll?node_id=node_01
+200  http://127.0.0.1:5050/lite
 ```
 
 La red puede tardar un poco en pasar de `local_only` a `multicell` mientras se estabilizan las fuentes SeedLink.

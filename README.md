@@ -79,8 +79,7 @@ Internas / dispositivos:
 
 ```text
 /health
-/api/node/poll?node_id=node_01
-/api/esp32/poll?node_id=node_01
+/lite
 /api/network/state
 /api/cells/<cell_id>
 ```

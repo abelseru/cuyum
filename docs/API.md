@@ -9,8 +9,7 @@ Default server: http://127.0.0.1:5050
 
 ## Internal and device interfaces
 - GET /health: basic server status.
-- GET /api/node/poll?node_id=node_01: polling interface for external nodes.
-- GET /api/esp32/poll?node_id=node_01: polling interface for ESP32 clients.
+- GET /lite: compact polling interface for ESP32 devices and other lightweight clients.
 - GET /api/network/state: technical network state.
 - GET /api/cells/<cell_id>: technical state for a specific cell.
 

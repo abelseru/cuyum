@@ -24,45 +24,45 @@ STATIC_DIR = BASE_DIR / "static"
 CACHE_SECONDS = 1.0
 CACHE = {}
 
-JSON_REQUEST_TIMES = deque()
-JSON_REQUEST_LOCK = Lock()
+STATUS_REQUEST_TIMES = deque()
+STATUS_REQUEST_LOCK = Lock()
 
 
-def record_json_request():
+def record_status_request():
     now = time.monotonic()
 
-    with JSON_REQUEST_LOCK:
-        JSON_REQUEST_TIMES.append(now)
+    with STATUS_REQUEST_LOCK:
+        STATUS_REQUEST_TIMES.append(now)
 
-        while JSON_REQUEST_TIMES and now - JSON_REQUEST_TIMES[0] > 60.0:
-            JSON_REQUEST_TIMES.popleft()
+        while STATUS_REQUEST_TIMES and now - STATUS_REQUEST_TIMES[0] > 60.0:
+            STATUS_REQUEST_TIMES.popleft()
 
 
-def json_activity_snapshot():
+def status_activity_snapshot():
     now = time.monotonic()
 
-    with JSON_REQUEST_LOCK:
-        while JSON_REQUEST_TIMES and now - JSON_REQUEST_TIMES[0] > 60.0:
-            JSON_REQUEST_TIMES.popleft()
+    with STATUS_REQUEST_LOCK:
+        while STATUS_REQUEST_TIMES and now - STATUS_REQUEST_TIMES[0] > 60.0:
+            STATUS_REQUEST_TIMES.popleft()
 
         last_second = sum(
             1
-            for timestamp in JSON_REQUEST_TIMES
+            for timestamp in STATUS_REQUEST_TIMES
             if now - timestamp <= 1.0
         )
 
         last_5_seconds = sum(
             1
-            for timestamp in JSON_REQUEST_TIMES
+            for timestamp in STATUS_REQUEST_TIMES
             if now - timestamp <= 5.0
         )
 
-        last_minute = len(JSON_REQUEST_TIMES)
+        last_minute = len(STATUS_REQUEST_TIMES)
 
     return {
-        "json_requests_last_second": last_second,
-        "json_requests_last_5_seconds": last_5_seconds,
-        "json_requests_last_minute": last_minute,
+        "status_requests_last_second": last_second,
+        "status_requests_last_5_seconds": last_5_seconds,
+        "status_requests_last_minute": last_minute,
         "equivalent_active_clients": last_5_seconds,
     }
 
@@ -265,8 +265,7 @@ class CuyumHandler(BaseHTTPRequestHandler):
                         "/app",
                         "/json",
                         "/reg",
-                        "/api/node/poll?node_id=node_01",
-                        "/api/esp32/poll?node_id=node_01",
+                        "/lite",
                     ],
                 })
                 return
@@ -287,7 +286,7 @@ class CuyumHandler(BaseHTTPRequestHandler):
                 return
 
             if path == "/json":
-                record_json_request()
+                record_status_request()
 
                 payload = dict(
                     cached("public_live", build_public_live)
@@ -300,7 +299,7 @@ class CuyumHandler(BaseHTTPRequestHandler):
 
                 payload["statistics"] = {
                     **existing_statistics,
-                    **json_activity_snapshot(),
+                    **status_activity_snapshot(),
                 }
 
                 self.send_json(payload)
@@ -312,14 +311,30 @@ class CuyumHandler(BaseHTTPRequestHandler):
                 self.send_json(build_events_v1(raw_events))
                 return
 
-            if path == "/api/node/poll" or path == "/api/esp32/poll":
-                node_id = query.get("node_id", ["node_01"])[0]
-                self.send_json(
+            if path == "/lite":
+                record_status_request()
+
+                payload = dict(
                     cached(
-                        f"node_poll:{node_id}",
-                        lambda: build_node_poll(node_id),
+                        "lite_status",
+                        lambda: build_node_poll("node_01"),
                     )
                 )
+
+                existing_statistics = payload.get(
+                    "statistics",
+                    {},
+                )
+
+                if not isinstance(existing_statistics, dict):
+                    existing_statistics = {}
+
+                payload["statistics"] = {
+                    **existing_statistics,
+                    **status_activity_snapshot(),
+                }
+
+                self.send_json(payload)
                 return
 
             if path == "/api/network/state":
