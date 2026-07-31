@@ -393,7 +393,16 @@ def select_local_sensors_diverse(local_pool, center, local_max):
 
 
 
-def clean_sensor(sensor):
+
+def effective_warning_seconds(distance_km):
+    """Estimated useful warning time from the historical Cuyum model."""
+    distance = fnum(distance_km)
+    seconds = distance / 3.5 - 3.0 - 2.0
+    return round(max(0.0, seconds), 1)
+
+
+def clean_sensor(
+sensor):
     out = {
         "network": sensor.get("network"),
         "station": sensor.get("station"),
@@ -405,6 +414,9 @@ def clean_sensor(sensor):
         "can_confirm": bool(sensor.get("can_confirm", True)),
         "can_trigger": bool(sensor.get("can_trigger", False)),
         "distance_km": round(fnum(sensor.get("distance_km")), 1),
+        "effective_warning_seconds": effective_warning_seconds(
+            sensor.get("distance_km")
+        ),
         "state": sensor.get("state") or "active",
         "source": sensor.get("source"),
         "source_provider": sensor.get("source_provider"),

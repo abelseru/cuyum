@@ -272,6 +272,124 @@
     .dot.external{background:var(--cyan)}
     .dot.event{background:var(--red)}
 
+    .activity-overview{
+      margin-top:26px;
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px
+    }
+    .activity-card{
+      min-height:116px;
+      padding:17px;
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:10px
+    }
+    .activity-card span{
+      display:block;
+      margin-bottom:9px;
+      color:var(--muted);
+      font-size:.7rem;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase
+    }
+    .activity-card strong{
+      display:block;
+      color:var(--ink);
+      font-size:1.8rem;
+      line-height:1
+    }
+    .activity-card small{
+      display:block;
+      margin-top:9px;
+      color:var(--muted);
+      line-height:1.4
+    }
+    .activity-detail{
+      margin-top:12px;
+      display:grid;
+      grid-template-columns:minmax(0,1.35fr) minmax(250px,.65fr);
+      gap:10px
+    }
+    .history-panel,
+    .telegram-panel{
+      padding:18px;
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:10px
+    }
+    .panel-title{
+      margin:0;
+      color:var(--ink);
+      font-size:1rem
+    }
+    .history-heading{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      margin-bottom:13px
+    }
+    .history-button{
+      flex:0 0 auto;
+      padding:7px 10px;
+      font-size:.78rem
+    }
+    .history-list{
+      display:grid;
+      gap:8px
+    }
+    .history-item{
+      display:grid;
+      grid-template-columns:minmax(120px,.9fr) minmax(90px,1fr) 72px;
+      gap:12px;
+      align-items:center;
+      padding:11px 0;
+      border-top:1px solid var(--line)
+    }
+    .history-item:first-child{
+      border-top:0;
+      padding-top:0
+    }
+    .history-date{
+      color:var(--muted);
+      font-size:.8rem
+    }
+    .history-direction{
+      color:var(--soft);
+      font-weight:750
+    }
+    .history-warning{
+      color:var(--cyan);
+      font-weight:850;
+      white-space:nowrap;
+      text-align:right
+    }
+    .history-empty{
+      margin:0;
+      color:var(--muted);
+      line-height:1.55
+    }
+    .telegram-panel p{
+      color:var(--soft);
+      line-height:1.55
+    }
+    .telegram-channel{
+      display:block;
+      margin:13px 0;
+      color:var(--cyan);
+      font-size:1.25rem;
+      font-weight:850;
+      text-decoration:none
+    }
+    .activity-note{
+      margin:12px 0 0;
+      color:var(--muted);
+      font-size:.78rem;
+      line-height:1.5
+    }
+
     .open-row{
       display:flex;
       justify-content:space-between;
@@ -341,6 +459,8 @@
       .stats{grid-template-columns:1fr 1fr}
       .stat:first-child{grid-column:1/-1}
       .section-grid{grid-template-columns:1fr;gap:18px}
+      .activity-overview{grid-template-columns:1fr}
+      .activity-detail{grid-template-columns:1fr}
       .copy{padding-top:0}
       h2{max-width:14ch}
       .open-row{align-items:flex-start;flex-direction:column}
@@ -351,6 +471,11 @@
       .chip:last-child{display:none}
       .map-note{left:10px;bottom:108px}
       .stats{grid-template-columns:1fr 1fr}
+      .history-item{
+        grid-template-columns:1fr auto;
+        gap:5px 10px
+      }
+      .history-date{grid-column:1/-1}
       footer{display:block}
     }
   </style>
@@ -364,6 +489,7 @@
   <nav class="nav">
     <a href="#mapa">El mapa</a>
     <a href="#proyecto">El proyecto</a>
+    <a href="#actividad">Actividad</a>
     <a href="#faq">Preguntas</a>
     <a href="#Implementar">Implementar</a>
     <a class="primary" href="/app">Abrir monitor</a>
@@ -377,7 +503,7 @@
     <div class="map-bottom-cover"></div>
     <div class="map-status">
       <div class="chip" id="mapStatus">Red <b>activa</b></div>
-      <div class="chip">Centro actual: <b id="mapCenter">Mendoza</b></div>
+      <div class="chip">Centro actual: <b id="mapCenter">Gran Mendoza</b></div>
     </div>
     <div class="map-note" id="mapSummary">Cargando sensores…</div>
   </div>
@@ -388,7 +514,7 @@
       <h1>Cuyum detecta eventos sísmicos utilizando datos públicos del territorio.</h1>
     </div>
     <div class="hero-side">
-      <p class="intro">La red monitorea en vivo estaciones cercanas y lejanas a su centro, vinculándolas en un sistema autoadaptable. Cuando múltiples sensores confirman una señal, Cuyum calcula y almacena el tiempo de propagación dentro del territorio.</p>
+      <p class="intro">Esta iniciativa educativa y experimental de software libre supervisa señales telúricas en un radio de aproximadamente <strong id="coverageRadius">—</strong> km desde su centro en un sistema autoadaptable. Cuando múltiples sensores confirman una señal, Cuyum calcula y almacena su tiempo estimado de propagación hacia su centro.</p>
       <div class="actions">
         <a class="btn primary" href="/app">Ver el monitor</a>
         <a class="btn" href="#proyecto">Conocer el proyecto</a>
@@ -398,7 +524,7 @@
 
   <div class="stats">
     <div class="stat"><span>Estado</span><strong id="statusText" class="normal">Conectando…</strong></div>
-    <div class="stat"><span>Centro</span><strong id="centerText">Mendoza</strong></div>
+    <div class="stat"><span>Centro</span><strong id="centerText">Gran Mendoza</strong></div>
     <div class="stat"><span>Sensores visibles</span><strong id="sensorsText">—</strong></div>
     <div class="stat"><span>Celdas</span><strong id="cellsText">—</strong></div>
   </div>
@@ -409,7 +535,7 @@
     <div class="section-grid">
       <div>
         <div class="kicker">El mapa de la red</div>
-        <h2>Desarrollado para el Gran Mendoza, listo para el mundo.</h2>
+        <h2>Nacido en el Gran Mendoza, listo para el mundo.</h2>
       </div>
       <div class="copy">
         <p>Replicándolo en tu propio servidor, Cuyum puede adoptar centro en cualquier parte del mundo.</p>
@@ -438,6 +564,76 @@
     </div>
   </section>
 
+  <section class="section" id="actividad">
+    <div class="section-grid">
+      <div>
+        <div class="kicker">Actividad pública</div>
+        <h2>Una red abierta que deja registro.</h2>
+      </div>
+
+      <div class="copy">
+        <p>Cuyum publica una estimación de la actividad actual, conserva un historial experimental de multiseñales confirmadas y mantiene un canal abierto para compartir sus registros.</p>
+
+        <div class="activity-overview">
+          <div class="activity-card">
+            <span>Carga equivalente*</span>
+            <strong id="equivalentClients">—</strong>
+            <small>Dispositivos en proceso de consulta.</small>
+          </div>
+
+          <div class="activity-card">
+            <span>Historial Cuyum</span>
+            <strong id="multisignalTotal">0</strong>
+            <small id="historyCenterText">Multiseñales registradas en el centro actual.</small>
+          </div>
+
+          <div class="activity-card">
+            <span>Canal de Telegram</span>
+            <strong id="telegramMembers">—</strong>
+            <small>Miembros suscriptos al canal.</small>
+          </div>
+        </div>
+
+        <div class="activity-detail">
+          <div class="history-panel">
+            <div class="history-heading">
+              <h3 class="panel-title" id="historyTitle">Registros recientes</h3>
+              <a class="btn history-button" href="/reg">Registro JSON</a>
+            </div>
+
+            <div class="history-list" id="multisignalHistory">
+              <p class="history-empty">Leyendo el historial experimental…</p>
+            </div>
+          </div>
+
+          <div class="telegram-panel">
+            <h3 class="panel-title">Seguir la red</h3>
+            <p>El canal comparte avisos experimentales en tiempo real. No constituye información oficial.</p>
+
+            <div class="actions">
+              <a
+                class="btn primary"
+                id="telegramButton"
+                href="https://t.me/redcuyum"
+                target="_blank"
+                rel="noreferrer"
+              >Telegram · @redcuyum</a>
+
+              <a
+                class="btn"
+                href="https://www.instagram.com/cuyum.ar/"
+                target="_blank"
+                rel="noreferrer"
+              >Instagram · @cuyum.ar</a>
+            </div>
+          </div>
+        </div>
+
+        <p class="activity-note">* La carga equivalente es una aproximación técnica basada en solicitudes HTTP recientes; no representa un conteo exacto de personas.</p>
+      </div>
+    </div>
+  </section>
+
   <section class="section" id="faq">
     <div class="section-grid">
       <div>
@@ -446,19 +642,22 @@
       </div>
       <div class="copy">
         <p><strong style="color:var(--ink)">¿Qué inspiró la creación de Cuyum?</strong><br>
-        Cuyum nació para ayudar a comprender cómo se propagan las señales sísmicas a través del territorio. Une programación, redes, datos abiertos y observación experimental en una herramienta educativa. No busca reemplazar a los organismos oficiales, sino acercar una forma visible y accesible de estudiar el comportamiento de una red sísmica.</p>
-        
+        Cuyum nació para ayudar a comprender cómo se propagan las señales sísmicas a través del territorio. Integra programación, redes, datos abiertos y observación experimental en una herramienta educativa. No reemplaza a los organismos oficiales: permite estudiar de forma visible y accesible el comportamiento de una red sísmica.</p>
+
         <p><strong style="color:var(--ink)">¿Puedo usar Cuyum en un celular viejo?</strong><br>
-        Sí. Un celular, tablet o notebook antigua puede permanecer conectada a la corriente con el monitor abierto en el navegador. No requiere instalar una aplicación especial. Solo necesita acceso al servidor de Cuyum, ya sea dentro de la misma red local o mediante una dirección publicada en internet.</p>
-        
+        Sí. Un celular, una tablet o una notebook antigua pueden permanecer conectados a la corriente con el monitor abierto en el navegador. No es necesario instalar una aplicación. El dispositivo solo necesita acceso continuo a Internet para actualizar los datos en tiempo real.</p>
+
         <p><strong style="color:var(--ink)">¿Por qué puede funcionar en cualquier parte del mundo?</strong><br>
-        Porque Cuyum no depende de una ubicación fija. El sistema adopta un centro geográfico y organiza las estaciones disponibles alrededor de ese punto. Al cambiar la configuración, puede adaptarse a otra ciudad o región, siempre que existan estaciones abiertas y accesibles en el territorio.</p>
-        
-        <p><strong style="color:var(--ink)">¿Cómo puedo adoptarlo en mi comunidad?</strong><br>
-        Se necesita una computadora o servidor, acceso a internet y estaciones sísmicas abiertas cercanas. Luego se configura el centro geográfico, se prueban las fuentes de datos y se observa el sistema durante varios días. El monitor puede compartirse dentro de una escuela, institución o comunidad.</p>
-        
-        <p><strong style="color:var(--ink)">¿Qué puede mostrar Cuyum y qué no?</strong><br>
-        Cuyum muestra sensores disponibles, células, señales observadas y tiempos de propagación hacia el centro configurado. No calcula magnitudes ni determina epicentros. Sus registros son experimentales y deben compararse con la información publicada por el INPRES y otros organismos oficiales.</p>
+        Porque Cuyum no depende de una ubicación fija. El sistema adopta un centro geográfico y organiza las estaciones disponibles alrededor de ese punto. Al cambiar la configuración, puede adaptarse a otra ciudad o región, siempre que existan estaciones sísmicas abiertas y accesibles.</p>
+
+        <p><strong style="color:var(--ink)">¿Cómo puedo implementarlo en mi comunidad?</strong><br>
+        Se necesita una computadora o servidor, acceso a internet y estaciones sísmicas abiertas cercanas. Luego se configura el centro geográfico, se verifican las fuentes de datos y se observa el funcionamiento durante varios días. El monitor puede compartirse dentro de una escuela, institución o comunidad.</p>
+
+        <p><strong style="color:var(--ink)">¿Qué información puede mostrar Cuyum?</strong><br>
+        Cuyum muestra sensores disponibles, zonas de observación, señales detectadas y tiempos estimados de propagación hacia el centro configurado. También conserva registros experimentales de las multiseñales confirmadas por la red.</p>
+
+        <p><strong style="color:var(--ink)">¿Qué información no determina Cuyum?</strong><br>
+        Cuyum no calcula magnitudes, no determina epicentros y no reemplaza la información de los organismos oficiales. Sus registros son experimentales y deben compararse con las publicaciones del INPRES y de otras instituciones sismológicas.</p>
       </div>
     </div>
   </section>
@@ -479,7 +678,7 @@
 </main>
 
 <footer>
-  <span>Cuyum v1.2</span>
+  <span>Cuyum 1.3</span>
   <span>Observación sísmica educativa y experimental</span>
 </footer>
 
@@ -492,7 +691,7 @@
   const CELL_COLORS=['#0ea5e9','#ec4899','#2563eb','#a855f7','#e11d48'];
 
   const fallback={
-    system_center:{label:'Mendoza',lat:-32.8895,lon:-68.8458},
+    system_center:{label:'Gran Mendoza',lat:-32.8895,lon:-68.8458},
     network:{state:'normal',active_sensors:12,active_cells:5},
     display_cells:[
       {cell_id:'cell_00',label:'Local',lat:-32.8895,lon:-68.8458,state:'normal'},
@@ -543,7 +742,7 @@
   function centerOf(data){
     const c=data.system_center||data.display?.center||data.center||fallback.system_center;
     return {
-      label:c.label||c.name||'Mendoza',
+      label:c.label||c.name||'Gran Mendoza',
       lat:num(c.lat??c.latitude)??-32.8895,
       lon:num(c.lon??c.lng??c.longitude)??-68.8458
     };
@@ -609,6 +808,25 @@
     }).filter(Boolean);
   }
 
+  function distanceKm(lat1,lon1,lat2,lon2){
+    const toRadians=value=>value*Math.PI/180;
+    const earthRadiusKm=6371;
+
+    const dLat=toRadians(lat2-lat1);
+    const dLon=toRadians(lon2-lon1);
+
+    const a=
+      Math.sin(dLat/2)**2+
+      Math.cos(toRadians(lat1))*
+      Math.cos(toRadians(lat2))*
+      Math.sin(dLon/2)**2;
+
+    return 2*earthRadiusKm*Math.atan2(
+      Math.sqrt(a),
+      Math.sqrt(1-a)
+    );
+  }
+
   function stateOf(item){
     return String(
       item?.sensor_state||
@@ -639,6 +857,122 @@
     });
   }
 
+  function safeText(value,fallback='—'){
+    const text=String(value??'').trim();
+    return text||fallback;
+  }
+
+  function formatRecordDate(value){
+    if(!value)return 'Fecha no disponible';
+
+    const date=new Date(value);
+    if(Number.isNaN(date.getTime()))return safeText(value);
+
+    return new Intl.DateTimeFormat('es-AR',{
+      day:'2-digit',
+      month:'2-digit',
+      year:'numeric',
+      hour:'2-digit',
+      minute:'2-digit',
+      hour12:false
+    }).format(date);
+  }
+
+  function renderPublicActivity(data){
+    const statistics=data.statistics||{};
+    const history=data.confirmed_multisignals||{};
+    const telegram=data.telegram||{};
+
+    const equivalent=Number(
+      statistics.equivalent_active_clients
+    );
+
+    document.getElementById('equivalentClients').textContent=
+      Number.isFinite(equivalent)?Math.max(0,Math.round(equivalent)):'—';
+
+    const total=Number(history.total);
+    document.getElementById('multisignalTotal').textContent=
+      Number.isFinite(total)?Math.max(0,Math.round(total)):0;
+
+    const historyCenterText=document.getElementById('historyCenterText');
+    if(historyCenterText){
+      const center=centerOf(data);
+      historyCenterText.textContent=
+        `Multiseñales registradas en ${center.label}.`;
+    }
+
+    const members=Number(telegram.members);
+    document.getElementById('telegramMembers').textContent=
+      Number.isFinite(members)?Math.max(0,Math.round(members)):'—';
+
+    const channel=safeText(telegram.channel,'@redcuyum');
+    const url=safeText(telegram.url,'https://t.me/redcuyum');
+
+    const telegramButton=document.getElementById('telegramButton');
+
+    telegramButton.textContent=`Telegram · ${channel}`;
+    telegramButton.href=url;
+
+    const container=document.getElementById('multisignalHistory');
+    const recent=Array.isArray(history.recent)
+      ?history.recent.slice(0,5)
+      :[];
+
+    const historyTitle=document.getElementById('historyTitle');
+
+    if(historyTitle){
+      if(recent.length===1){
+        historyTitle.textContent='Último registro';
+      }else if(recent.length>1){
+        historyTitle.textContent=`Últimos ${recent.length} registros`;
+      }else{
+        historyTitle.textContent='Registros recientes';
+      }
+    }
+
+    container.replaceChildren();
+
+    if(!recent.length){
+      const empty=document.createElement('p');
+      empty.className='history-empty';
+      empty.textContent=
+        'Aún no hay multiseñales confirmadas registradas.';
+      container.appendChild(empty);
+      return;
+    }
+
+    recent.forEach(record=>{
+      const item=document.createElement('div');
+      item.className='history-item';
+
+      const date=document.createElement('span');
+      date.className='history-date';
+      date.textContent=formatRecordDate(record.timestamp);
+
+      const direction=document.createElement('span');
+      direction.className='history-direction';
+      direction.textContent=safeText(
+        record.direction_label||
+        record.direction||
+        record.cell_id,
+        'Dirección no disponible'
+      );
+
+      const warning=document.createElement('span');
+      warning.className='history-warning';
+
+      const seconds=Number(record.warning_seconds);
+      warning.textContent=Number.isFinite(seconds)&&seconds>0
+        ?`${seconds.toLocaleString('es-AR',{
+            maximumFractionDigits:1
+          })} s`
+        :'Sin datos';
+
+      item.append(date,direction,warning);
+      container.appendChild(item);
+    });
+  }
+
   function render(data){
     sensorsLayer.clearLayers();
     zoneLayer.clearLayers();
@@ -647,6 +981,27 @@
     const center=centerOf(data);
     const sensors=sensorsOf(data);
     const cells=cellsOf(data,sensors);
+
+    const coverageRadius=document.getElementById('coverageRadius');
+
+    if(coverageRadius){
+      const distances=sensors.map(sensor=>
+        distanceKm(
+          center.lat,
+          center.lon,
+          sensor.lat,
+          sensor.lon
+        )
+      ).filter(Number.isFinite);
+
+      const farthest=distances.length
+        ?Math.max(...distances)
+        :null;
+
+      coverageRadius.textContent=farthest===null
+        ?'—'
+        :Math.ceil(farthest).toLocaleString('es-AR');
+    }
 
     const localCell=cells.find(c=>c.cell_id==='cell_00')||center;
     const bounds=[];
@@ -744,6 +1099,8 @@
     const externalCount=sensors.length-localCount;
     document.getElementById('mapSummary').textContent=
       `${localCount} sensores locales · ${externalCount} externos · ${cells.length} células`;
+
+    renderPublicActivity(data);
   }
 
   async function loadOnce(){
