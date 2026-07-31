@@ -14,7 +14,6 @@ if [ ! -d "venv" ]; then
   exit 1
 fi
 
-source venv/bin/activate
 
 echo "[1/8] Stopping previous Cuyum..."
 pkill -f app/plain_python_server.py 2>/dev/null || true
@@ -35,7 +34,7 @@ mkdir -p runtime runtime/logs
 
 echo "[3/8] Applying retention cleanup..."
 if [ -f app/retention_cleaner.py ]; then
-  python app/retention_cleaner.py || echo "WARNING: retention cleanup failed"
+  ./venv/bin/./venv/bin/python app/retention_cleaner.py || echo "WARNING: retention cleanup failed"
 fi
 
 echo "[4/8] Preparing auto cell inventories..."
@@ -43,7 +42,7 @@ echo "Using existing config/auto_cell_*_inventory.json microcell inventories"
 ls config/auto_cell_*_inventory.json 2>/dev/null || echo "WARNING: no auto microcell inventories found" 
 
 echo "[5/8] Starting cell_00 reader..."
-python -u app/cell_00_seedlink_reader.py > runtime/logs/logs_lector.txt 2>&1 &
+./venv/bin/./venv/bin/python -u app/cell_00_seedlink_reader.py > runtime/logs/logs_lector.txt 2>&1 &
 sleep 2
 
 echo "[6/8] Starting auto cell readers..."
@@ -52,7 +51,7 @@ for inv in config/auto_cell_*_inventory.json; do
   base=$(basename "$inv")
   cid=${base%_inventory.json}
   echo "Starting $cid"
-  python -u app/auto_cell_seedlink_reader.py "$inv" "runtime/${cid}_state.json" > "runtime/logs/logs_${cid}.txt" 2>&1 &
+  ./venv/bin/./venv/bin/python -u app/auto_cell_seedlink_reader.py "$inv" "runtime/${cid}_state.json" > "runtime/logs/logs_${cid}.txt" 2>&1 &
 done
 sleep 2
 
@@ -64,14 +63,14 @@ else
 fi
 
 if [ -f app/sensor_auditor.py ]; then
-  python -u app/sensor_auditor.py > runtime/logs/logs_sensor_auditor.txt 2>&1 &
+  ./venv/bin/./venv/bin/python -u app/sensor_auditor.py > runtime/logs/logs_sensor_auditor.txt 2>&1 &
 else
   echo "WARNING: app/sensor_auditor.py not found"
 fi
 sleep 2
 
 echo "[8/8] Starting Cuyum on port 5050..."
-python3 -m py_compile app/plain_python_server.py app/public_api_v1.py
+./venv/bin/python -m py_compile app/plain_python_server.py app/public_api_v1.py
 ./venv/bin/python -u app/plain_python_server.py > runtime/logs/logs_cuyum_server.txt 2>&1 &
 sleep 5
 
@@ -92,7 +91,7 @@ for url in \
   "http://127.0.0.1:5050/reg" \
   "http://127.0.0.1:5050/lite"
 do
-  code=$(python - <<PY
+  code=$(./venv/bin/python - <<PY
 import urllib.request
 try:
     r = urllib.request.urlopen("$url", timeout=5)
