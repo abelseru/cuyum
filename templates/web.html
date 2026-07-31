@@ -598,7 +598,12 @@
           <div class="history-panel">
             <div class="history-heading">
               <h3 class="panel-title" id="historyTitle">Registros recientes</h3>
-              <a class="btn history-button" href="/reg">Registro JSON</a>
+              <a
+                class="btn history-button"
+                href="http://contenidos.inpres.gob.ar/sismologia/xultimos"
+                target="_blank"
+                rel="noreferrer"
+              >Ver INPRES</a>
             </div>
 
             <div class="history-list" id="multisignalHistory">
@@ -1070,35 +1075,74 @@
       });
     }
 
-    const systemState=String(
-      data.event?.state||
-      data.system?.state||
-      data.network?.state||
-      data.state||
+    const eventLevel=String(
+      data.event?.level||
+      data.alert?.level||
+      data.display?.status||
       'normal'
     ).toLowerCase();
 
-    const event=systemState.includes('signal')||
-                systemState.includes('watch')||
-                systemState.includes('confirm')||
-                systemState.includes('alert');
+    const event=eventLevel.includes('signal')||
+                eventLevel.includes('watch')||
+                eventLevel.includes('confirm')||
+                eventLevel.includes('anticipation')||
+                eventLevel.includes('alert')||
+                eventLevel.includes('observation');
+
+    const network=data.network||{};
+
+    const configuredCells=Number.isFinite(Number(network.cells_configured))
+      ?Number(network.cells_configured)
+      :cells.length;
+
+    const activeCells=Number.isFinite(Number(network.cells_active))
+      ?Number(network.cells_active)
+      :0;
 
     const status=document.getElementById('statusText');
     const mapStatus=document.getElementById('mapStatus');
-    status.className=event?'signal':'normal';
-    status.textContent=event?'Señal en observación':'Red activa · estado normal';
-    mapStatus.className=event?'chip signal':'chip';
-    mapStatus.innerHTML=event?'Cuyum <b>observa una señal</b>':'Red <b>activa</b>';
+
+    if(event){
+      status.className='signal';
+      status.textContent='Señal en observación';
+      mapStatus.className='chip signal';
+      mapStatus.innerHTML='Cuyum <b>observa una señal</b>';
+    }else if(configuredCells>0&&activeCells>=configuredCells){
+      status.className='normal';
+      status.textContent='Red activa · estado normal';
+      mapStatus.className='chip';
+      mapStatus.innerHTML='Red <b>activa</b>';
+    }else if(activeCells>0){
+      status.className='normal';
+      status.textContent=
+        `Red parcial · ${activeCells} de ${configuredCells} celdas activas`;
+      mapStatus.className='chip';
+      mapStatus.innerHTML=
+        `Red <b>parcial · ${activeCells}/${configuredCells}</b>`;
+    }else{
+      status.className='normal';
+      status.textContent='Red iniciando · esperando celdas';
+      mapStatus.className='chip';
+      mapStatus.innerHTML='Red <b>iniciando</b>';
+    }
 
     document.getElementById('centerText').textContent=center.label;
     document.getElementById('mapCenter').textContent=center.label;
     document.getElementById('sensorsText').textContent=sensors.length;
-    document.getElementById('cellsText').textContent=cells.length;
+    document.getElementById('cellsText').textContent=configuredCells;
 
-    const localCount=sensors.filter(s=>sensorCellId(s)==='cell_00').length;
-    const externalCount=sensors.length-localCount;
+    const activeSensors=Number.isFinite(
+      Number(network.sensors_active)
+    )
+      ?Number(network.sensors_active)
+      :cells.reduce(
+          (total,cell)=>
+            total+Number(cell.sensors_active||0),
+          0
+        );
+
     document.getElementById('mapSummary').textContent=
-      `${localCount} sensores locales · ${externalCount} externos · ${cells.length} células`;
+      `${activeSensors} sensores activos · ${activeCells}/${configuredCells} celdas activas`;
 
     renderPublicActivity(data);
   }
@@ -1129,6 +1173,11 @@
   }
 
   loadOnce();
+
+  setInterval(
+    loadOnce,
+    5000
+  );
 
   window.addEventListener('resize',()=>map.invalidateSize(false));
 })();

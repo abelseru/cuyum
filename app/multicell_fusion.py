@@ -663,8 +663,26 @@ def build_node_poll(node_id="node_01"):
     attention_direction = ""
     attention_direction_label = ""
     attention_confirming = 0
+    attention_cell_id = ""
+    attention_warning_seconds = 0.0
 
     if attention_cell is not None:
+        attention_cell_id = str(
+            attention_cell.get("cell_id")
+            or ""
+        )
+
+        attention_warning_seconds = _as_float(
+            attention_cell.get(
+                "warning_seconds",
+                attention_cell.get(
+                    "effective_warning_seconds",
+                    0,
+                ),
+            ),
+            0,
+        )
+
         attention_direction = str(
             attention_cell.get("direction")
             or attention_cell.get("short_label")
@@ -687,6 +705,12 @@ def build_node_poll(node_id="node_01"):
             net.get("total_confirming_stations", 0) or 0
         )
 
+    attention_active = event.get("level") in {
+        "local_confirmation",
+        "local_watch",
+        "multicell_anticipation",
+    }
+
     response = {
         # Canonical node payload.
         "node_id": node_id,
@@ -705,9 +729,11 @@ def build_node_poll(node_id="node_01"):
         "ratio_max": net["ratio_max"],
 
         "attention": {
-            "active": bool(event["sound"]),
+            "active": attention_active,
+            "cell_id": attention_cell_id,
             "direction": attention_direction,
             "direction_label": attention_direction_label,
+            "warning_seconds": attention_warning_seconds,
             "confirming_sensors": attention_confirming,
         },
 

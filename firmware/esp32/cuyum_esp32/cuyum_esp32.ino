@@ -90,6 +90,7 @@ struct CuyumStatus {
   bool attentionActive;
   String attentionDirection;
   int attentionConfirmingSensors;
+  float attentionWarningSeconds;
 
   int zoneCount;
   ZoneData zones[MAX_ZONES];
@@ -379,13 +380,22 @@ void showAttentionScreen() {
     sensorWord = "sensor";
   }
 
+  String warningText = "Tiempo: sin datos";
+
+  if (statusData.attentionWarningSeconds > 0) {
+    warningText =
+      "Tiempo: " +
+      String(statusData.attentionWarningSeconds, 1) +
+      " s";
+  }
+
   String lines[6] = {
     "ATENCION",
-    "Direccion:",
     directionInSpanish(statusData.attentionDirection),
-    "Coinciden:",
     String(statusData.attentionConfirmingSensors) + " " + sensorWord,
-    "Aviso experimental"
+    warningText,
+    "Aviso experimental",
+    ""
   };
 
   drawLines(lines, 6);
@@ -689,6 +699,9 @@ bool readStatusJson(String payload) {
 
   statusData.attentionConfirmingSensors =
     root["attention"]["confirming_sensors"] | 0;
+
+  statusData.attentionWarningSeconds =
+    root["attention"]["warning_seconds"] | 0.0;
 
   if (statusData.attentionConfirmingSensors == 0) {
     statusData.attentionConfirmingSensors =
