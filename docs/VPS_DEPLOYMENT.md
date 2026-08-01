@@ -1,10 +1,8 @@
-# Cuyum 1.3 — Despliegue en VPS con Docker y Caddy
+# Cuyum 1.3 — Despliegue en VPS
 
-Este manual describe el despliegue actual de Cuyum mediante Docker Compose y Caddy.
+Este es el único procedimiento soportado para instalar y operar Cuyum 1.3.
 
-La arquitectura anterior basada en ejecución directa, entorno virtual, Nginx, Certbot y un servicio systemd propio ya no corresponde a este procedimiento.
-
-## 1. Arquitectura resultante
+## 1. Arquitectura
 
 ```text
 Internet
@@ -18,189 +16,85 @@ red interna de Docker
 Cuyum:5050
 ```
 
-El puerto `5050` existe dentro del contenedor, pero no queda publicado directamente en Internet.
+El puerto `5050` no debe exponerse directamente.
 
-## 2. Importante: no mezclar modos de ejecución
+## 2. Requisitos
 
-El modo tradicional usa:
-
-```bash
-./start_cuyum.sh
-./stop_cuyum.sh
-```
-
-El modo Docker usa:
-
-```bash
-docker compose up -d --build
-docker compose down
-```
-
-`./stop_cuyum.sh` no detiene un contenedor Docker.
-
-Si se matan manualmente procesos Python dentro del contenedor, Docker puede volver a iniciarlos porque el servicio tiene:
-
-```text
-restart: unless-stopped
-```
-
-Para detener Docker correctamente se debe usar:
-
-```bash
-docker compose down
-```
-
-Si el usuario no tiene permisos sobre Docker:
-
-```bash
-sudo docker compose down
-```
-
-## 3. Requisitos
-
-- VPS Linux con acceso administrativo.
-- Dominio propio.
-- Registro DNS del dominio apuntando a la IP pública del VPS.
+- VPS Linux.
+- Acceso administrativo.
+- Dominio apuntando a la IP pública.
 - Git.
 - Docker Engine.
-- Complemento Docker Compose.
-- Puertos públicos 80 y 443 disponibles.
+- Docker Compose.
+- Puertos 80 y 443 disponibles.
 
-## 4. DNS
+## 3. Clonar desde main
 
-Crear un registro `A`:
-
-```text
-cuyum.example.com -> IP_PUBLICA_DEL_VPS
+```bash
+cd /opt
+git clone https://github.com/abelseru/cuyum.git
+cd cuyum
+git switch main
 ```
 
 Comprobar:
 
 ```bash
-getent hosts cuyum.example.com
+git branch --show-current
+git log -2 --oneline
 ```
 
-## 5. Obtener el proyecto
-
-```bash
-cd /opt
-git clone https://github.com/USUARIO/cuyum.git
-cd cuyum
-```
-
-## 6. Crear la configuración privada
+## 4. Configuración privada
 
 ```bash
 cp setup.env.example setup.env
+mkdir -p runtime persistent secrets
 nano setup.env
-chmod 600 setup.env
+nano secrets/telegram_bot_token.txt
+chmod 600 setup.env secrets/telegram_bot_token.txt
 ```
 
-Ejemplo:
+Ejemplo de `setup.env`:
 
 ```text
-CUYUM_DOMAIN=cuyum.example.com
+CUYUM_DOMAIN=cuyum.ar
 TELEGRAM_CHAT_ID=-1000000000000
 ```
 
-## 7. Preparar directorios persistentes
+El token de Telegram debe quedar solamente en:
 
-```bash
-mkdir -p runtime persistent secrets
+```text
+secrets/telegram_bot_token.txt
 ```
 
-## 8. Instalar el token de Telegram
-
-```bash
-nano secrets/telegram_bot_token.txt
-chmod 600 secrets/telegram_bot_token.txt
-```
-
-El archivo debe contener solamente el token, en una línea y sin comillas.
-
-## 9. Validar Compose
+## 5. Validar
 
 ```bash
 docker compose config >/dev/null &&
 echo "Compose válido"
 ```
 
-Con `sudo`, cuando sea necesario:
-
-```bash
-sudo docker compose config >/dev/null &&
-echo "Compose válido"
-```
-
-## 10. Construir y arrancar
+## 6. Iniciar
 
 ```bash
 docker compose up -d --build
 docker compose ps
 ```
 
-O con permisos administrativos:
+El servicio `cuyum` debe aparecer como `healthy`.
+
+## 7. Verificar HTTPS
 
 ```bash
-sudo docker compose up -d --build
-sudo docker compose ps
+curl -sS -o /dev/null -w 'GET /app: HTTP %{http_code}\n' https://cuyum.ar/app
+curl -sS -o /dev/null -w 'GET /lite: HTTP %{http_code}\n' https://cuyum.ar/lite
 ```
 
-## 11. Detener correctamente
+La respuesta esperada es `HTTP 200`.
 
-Detener y eliminar contenedores y red del proyecto:
+No usar `curl -I` para `/app`, porque envía una petición `HEAD` y el servidor puede responder `501` aunque la ruta funcione correctamente con `GET`.
 
-```bash
-docker compose down
-```
-
-Con `sudo`:
-
-```bash
-sudo docker compose down
-```
-
-Detener sin eliminar los contenedores:
-
-```bash
-docker compose stop
-```
-
-Volver a iniciarlos:
-
-```bash
-docker compose start
-```
-
-No usar `./stop_cuyum.sh` para detener el despliegue Docker.
-
-## 12. Comprobar el sitio público
-
-```bash
-curl -I https://cuyum.example.com/app
-curl -s https://cuyum.example.com/health
-curl -s https://cuyum.example.com/lite
-```
-
-## 13. Comprobar que 5050 no esté expuesto
-
-```bash
-docker compose ps
-```
-
-Para Cuyum debería aparecer solamente:
-
-```text
-5050/tcp
-```
-
-No debería aparecer:
-
-```text
-0.0.0.0:5050->5050/tcp
-```
-
-## 14. Logs
+## 8. Logs
 
 ```bash
 docker compose logs --tail=100 cuyum
@@ -208,39 +102,57 @@ docker compose logs --tail=100 caddy
 docker compose logs -f
 ```
 
-## 15. Estado y salud
+## 9. Detener correctamente
 
 ```bash
-docker compose exec -T cuyum   python -c   "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:5050/lite', timeout=4).status)"
+docker compose down
 ```
 
-El resultado esperado es `200`.
+No matar procesos Python individualmente. Docker puede reiniciarlos automáticamente.
 
-## 16. Telegram
+## 10. Reiniciar
 
 ```bash
-docker compose exec -T cuyum sh -c '
-test -n "$TELEGRAM_CHAT_ID" &&
-echo "TELEGRAM_CHAT_ID configurado"
-'
+docker compose restart
 ```
 
-El token se lee desde:
-
-```text
-/app/secrets/telegram_bot_token.txt
-```
-
-## 17. Actualizar desde Git
+## 11. Actualizar desde GitHub
 
 ```bash
+cd /opt/cuyum
 git status
-git pull --ff-only
+git pull --ff-only origin main
 docker compose up -d --build
 docker compose ps
 ```
 
-## 18. Copias de seguridad
+Si `git status` muestra solamente inventarios generados por Cuyum, primero detener:
+
+```bash
+docker compose down
+```
+
+Luego decidir conscientemente si se conservan o se restauran. No hacer restauraciones con el contenedor activo.
+
+## 12. Confirmar que 5050 no está publicado
+
+```bash
+docker compose ps
+```
+
+Para `cuyum` debe verse:
+
+```text
+5050/tcp
+```
+
+No debe verse:
+
+```text
+0.0.0.0:5050->5050/tcp
+```
+
+## 13. Copias de seguridad
 
 Respaldar:
 
@@ -257,58 +169,49 @@ Ejemplo:
 tar -czf   cuyum-backup-$(date +%Y%m%d-%H%M%S).tar.gz   setup.env secrets persistent config
 ```
 
-## 19. Diagnóstico de procesos que reaparecen
+## 14. Diagnóstico
 
-Si se matan procesos Python y vuelven a aparecer con PID nuevos, comprobar:
+Procesos que reaparecen después de usar `pkill` indican que Docker continúa activo.
+
+Comprobar:
 
 ```bash
+docker compose ps
 sudo ss -ltnp | grep ':5050' || true
-sudo docker compose ps
 ```
 
-Si aparece `docker-proxy` o el contenedor `cuyum`, detener con:
+Detener correctamente:
 
 ```bash
-sudo docker compose down
+docker compose down
 ```
 
-No continuar restaurando archivos generados por Git mientras Cuyum siga activo, porque volverán a modificarse.
+## 15. Qué no hacer
 
-## 20. Qué no hacer
-
-- No publicar el puerto `5050` directamente en Internet.
-- No subir `setup.env` a Git.
+- No usar scripts heredados de inicio o detención.
+- No ejecutar procesos Python de Cuyum directamente en el host.
+- No publicar el puerto `5050`.
+- No subir `setup.env`.
 - No subir `secrets/`.
 - No subir el `config.h` real del ESP32.
-- No escribir tokens ni identificadores reales dentro del código.
-- No borrar `persistent/` durante una actualización.
-- No detener Docker mediante `./stop_cuyum.sh`.
-- No matar individualmente procesos administrados por Docker.
-- No usar el VPS como única copia del código fuente.
+- No restaurar inventarios mientras Cuyum está activo.
+- No usar el VPS como única copia del código.
 
-## 21. Lista de comprobación
+## 16. Lista de comprobación
 
 ```text
-[ ] El dominio apunta al VPS
-[ ] Docker y Compose están instalados
+[ ] El VPS usa la rama main
 [ ] setup.env existe
 [ ] El token de Telegram existe
-[ ] docker compose config es válido
-[ ] cuyum está saludable
-[ ] caddy está en ejecución
-[ ] /app responde por HTTPS
-[ ] /lite responde por HTTPS
-[ ] 5050 no está publicado en Internet
-[ ] Telegram puede enviar
-[ ] El ESP32 consulta la URL HTTPS pública
+[ ] Compose es válido
+[ ] Cuyum está healthy
+[ ] Caddy está activo
+[ ] /app devuelve HTTP 200
+[ ] /lite devuelve HTTP 200
+[ ] 5050 no está publicado
+[ ] GitHub y VPS apuntan al mismo commit
 ```
 
 ## Advertencia
 
-Cuyum es experimental. No reemplaza información sísmica oficial, sistemas certificados de alerta temprana ni procedimientos institucionales de emergencia.
-
-## Licencia
-
-Cuyum se distribuye bajo GNU General Public License v3.0 or later.
-
-Ver `LICENSE`.
+Cuyum es experimental. No reemplaza información sísmica oficial ni sistemas certificados de alerta temprana.

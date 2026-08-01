@@ -34,7 +34,11 @@ echo "Lon:    $LON"
 echo
 
 echo "[1/8] Stopping Cuyum..."
-./stop_cuyum.sh || true
+if docker compose ps >/dev/null 2>&1; then
+    docker compose down || true
+else
+    sudo docker compose down || true
+fi
 
 echo
 echo "[2/8] Resetting previous live state..."
@@ -101,7 +105,11 @@ cat runtime/live_inventory_organizer_report.txt || true
 
 echo
 echo "[7/8] Starting Cuyum..."
-./start_cuyum.sh
+if docker compose ps >/dev/null 2>&1; then
+    docker compose up -d --build
+else
+    sudo docker compose up -d --build
+fi
 
 echo
 echo "[8/8] Waiting for initial stabilization..."

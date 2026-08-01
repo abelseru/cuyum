@@ -1,107 +1,98 @@
 # Cuyum 1.3 — Arquitectura
 
+## Regla de operación
+
+Cuyum 1.3 se ejecuta exclusivamente mediante Docker Compose.
+
+No se soporta la ejecución directa de procesos Python desde el host. Los antiguos scripts de inicio y detención fueron retirados para evitar procesos duplicados, conflictos con el puerto `5050` y diferencias entre instalaciones.
+
 ## Flujo general
 
 ```text
 FDSN / SeedLink
        |
-catálogo de estaciones
-       |
-inventario de candidatos
-       |
-organizador de inventario vivo
+catálogo e inventarios
        |
 lectores de celdas
        |
 fusión multicelda
        |
-servidor HTTP de Cuyum
+servidor HTTP interno
        |
-Caddy / HTTPS
+Caddy
+       |
+HTTPS público
        |
 web, JSON, Telegram y ESP32
 ```
 
-## Componentes principales
+## Servicios Docker
 
-- `app/cell_00_seedlink_reader.py`: lector de la celda local.
-- `app/auto_cell_seedlink_reader.py`: lector reutilizable para las celdas regionales automáticas.
-- `app/live_inventory_organizer.py`: construye y mantiene las selecciones de sensores locales y regionales.
-- `app/multicell_fusion.py`: combina los estados de las distintas celdas en un estado de red.
-- `app/event_journal.py`: administra registros recientes de ejecución.
-- `app/plain_python_server.py`: servidor HTTP interno de Cuyum; escucha en el puerto `5050`.
-- `app/telegram_notice.py`: genera y envía publicaciones a Telegram.
+### cuyum
 
-Telegram obtiene el destino desde `TELEGRAM_CHAT_ID` y el token desde `secrets/telegram_bot_token.txt`.
+- Se construye desde `Dockerfile`.
+- Ejecuta `docker-entrypoint.sh`.
+- Usa Python 3.13.
+- Escucha en el puerto interno `5050`.
+- No publica el puerto `5050` en el host.
+- Monta `config/`, `runtime/`, `persistent/` y `secrets/`.
+- Usa `restart: unless-stopped`.
 
-## Modalidades de ejecución
+### caddy
 
-### Tradicional
+- Usa `caddy:2-alpine`.
+- Publica los puertos 80 y 443.
+- Gestiona HTTPS.
+- Reenvía solicitudes a `cuyum:5050`.
+- Espera a que Cuyum esté saludable.
 
-Los procesos Python se ejecutan directamente en el sistema.
+## Procesos internos
 
-```bash
-./start_cuyum.sh
-./stop_cuyum.sh
-```
+`docker-entrypoint.sh` administra los procesos de Cuyum dentro del contenedor:
 
-### Docker
+- lector de la celda local;
+- lectores de celdas automáticas;
+- descubrimiento SeedLink periódico;
+- auditor de sensores;
+- servidor HTTP.
 
-Los procesos Python se ejecutan dentro del contenedor `cuyum`.
+No deben iniciarse copias paralelas de estos procesos en el host.
+
+## Arranque y detención
+
+Inicio:
 
 ```bash
 docker compose up -d --build
+```
+
+Detención:
+
+```bash
 docker compose down
 ```
 
-Si el usuario no tiene permisos sobre `/var/run/docker.sock`, debe usar `sudo` o configurar correctamente su pertenencia al grupo `docker`.
+No se deben usar `pkill`, `kill` ni scripts heredados como mecanismo normal de detención.
 
-`./stop_cuyum.sh` no detiene un contenedor Docker.
-
-## Procesos dentro del contenedor
-
-`docker-entrypoint.sh` inicia:
-
-1. limpieza por retención;
-2. lector de `cell_00`;
-3. lectores automáticos regionales;
-4. revisión SeedLink periódica cada 15 minutos;
-5. auditor de sensores;
-6. servidor HTTP.
-
-Si muere uno de los procesos principales, el contenedor finaliza con error. Docker Compose puede reiniciarlo mediante:
+## Red
 
 ```text
-restart: unless-stopped
+Internet -> Caddy:443 -> cuyum:5050
 ```
 
-Por eso no debe intentarse detener Docker matando procesos Python individualmente. Se debe usar `docker compose down` o `docker compose stop`.
-
-## Arquitectura Docker
-
-Servicios:
+Puertos públicos:
 
 ```text
-cuyum
-caddy
+80/tcp
+443/tcp
+443/udp
 ```
 
-### Servicio cuyum
+Puerto interno:
 
-- Se construye desde `Dockerfile`.
-- Usa Python 3.13.
-- Escucha internamente en `5050`.
-- No publica ese puerto en el host.
-- Recibe variables desde `setup.env`.
-- Monta configuración, estado, datos persistentes y secretos.
-
-### Servicio caddy
-
-- Usa la imagen `caddy:2-alpine`.
-- Publica los puertos `80` y `443`.
-- Espera a que Cuyum esté saludable.
-- Reenvía las solicitudes a `cuyum:5050`.
-- Conserva certificados y configuración interna en volúmenes Docker.
+```text
+5050/tcp
+```
 
 ## Persistencia
 
@@ -112,17 +103,32 @@ caddy
 ./secrets     -> /app/secrets, solo lectura
 ```
 
-## Seguridad de red
+## Archivos generados durante la ejecución
 
-Los únicos puertos web publicados por el despliegue son:
+Cuyum puede modificar inventarios como:
 
 ```text
-80/tcp
-443/tcp
-443/udp
+config/candidate_inventory.json
+config/sensor_catalog.json
 ```
 
-El puerto `5050` permanece dentro de la red de Docker.
+Antes de restaurarlos con Git se debe detener Cuyum mediante:
+
+```bash
+docker compose down
+```
+
+## Componentes principales
+
+- `app/cell_00_seedlink_reader.py`
+- `app/auto_cell_seedlink_reader.py`
+- `app/live_inventory_organizer.py`
+- `app/multicell_fusion.py`
+- `app/plain_python_server.py`
+- `app/telegram_notice.py`
+- `docker-entrypoint.sh`
+- `compose.yaml`
+- `Caddyfile`
 
 ## Advertencia
 

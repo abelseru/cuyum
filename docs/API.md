@@ -1,60 +1,32 @@
-# Cuyum 1.3 — Interfaces HTTP
+# Cuyum 1.3 — API HTTP
 
-## Direcciones base
-
-Ejecución local tradicional:
-
-```text
-http://127.0.0.1:5050
-```
-
-Despliegue público:
+## Base pública
 
 ```text
 https://cuyum.ar
 ```
 
-En Docker, Cuyum continúa escuchando en el puerto interno `5050`, pero ese puerto no se publica directamente en Internet. Caddy recibe las conexiones HTTP/HTTPS y las reenvía al servicio `cuyum:5050` dentro de la red de Docker.
-
-## Interfaces públicas canónicas
+## Rutas
 
 ### GET /app
 
-Monitor web destinado a personas.
-
-```text
-https://cuyum.ar/app
-```
+Monitor web para personas.
 
 ### GET /json
 
-Estado vivo canónico de Cuyum.
-
-```text
-https://cuyum.ar/json
-```
+Estado vivo canónico.
 
 ### GET /reg
 
 Registros públicos recientes.
 
-```text
-https://cuyum.ar/reg
-```
+### GET /lite
 
-## Interfaces internas y de dispositivos
+Estado compacto para ESP32 y clientes livianos.
 
 ### GET /health
 
 Comprobación básica del servidor.
-
-### GET /lite
-
-Interfaz compacta para dispositivos ESP32 y clientes livianos.
-
-```text
-https://cuyum.ar/lite
-```
 
 ### GET /api/network/state
 
@@ -62,7 +34,7 @@ Estado técnico de la red multicelda.
 
 ### GET /api/cells/<cell_id>
 
-Estado técnico de una celda específica.
+Estado técnico de una celda.
 
 Ejemplo:
 
@@ -70,30 +42,50 @@ Ejemplo:
 /api/cells/cell_00
 ```
 
-## Política de contratos
+## Red interna
 
-Las interfaces públicas canónicas son:
+Dentro de Docker, Cuyum escucha en:
 
 ```text
-/app
-/json
-/reg
+http://cuyum:5050
 ```
 
-Cuyum no mantiene alias públicos paralelos para el mismo contrato de estado vivo.
+Caddy publica las rutas mediante HTTPS. El puerto `5050` no debe exponerse directamente en el host.
 
-`/lite` es una interfaz deliberadamente compacta para dispositivos y no sustituye a `/json`.
+## Healthcheck
 
-## Disponibilidad
-
-El healthcheck de Docker consulta internamente:
+El healthcheck del contenedor consulta internamente:
 
 ```text
 http://127.0.0.1:5050/lite
 ```
 
-Esto comprueba que el servidor HTTP del contenedor responda sin exponer el puerto `5050` al exterior.
+## Pruebas
+
+```bash
+curl -sS https://cuyum.ar/lite
+curl -sS https://cuyum.ar/json
+```
+
+Para verificar el código HTTP de `/app`:
+
+```bash
+curl -sS -o /dev/null -w '%{http_code}\n' https://cuyum.ar/app
+```
+
+No usar `curl -I` como prueba principal porque envía el método `HEAD`.
+
+## Contratos públicos
+
+Las interfaces canónicas son:
+
+```text
+/app
+/json
+/reg
+/lite
+```
 
 ## Advertencia
 
-Cuyum es experimental y no reemplaza información sísmica oficial ni sistemas certificados de alerta temprana.
+Cuyum es experimental y no reemplaza información sísmica oficial.
