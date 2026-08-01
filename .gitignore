@@ -57,3 +57,12 @@ runtime/logs/
 
 # Persistent local event history
 /persistent/*.json
+
+# Cuyum deployment secrets and backups
+setup.env
+secrets/
+persistent/
+runtime/
+firmware/esp32/cuyum_esp32/config.h
+*.bak
+*.bak-config

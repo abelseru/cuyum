@@ -21,7 +21,7 @@ STATE_FILE = PROJECT_DIR / "runtime" / "telegram_notice_state.json"
 HISTORY_FILE = PROJECT_DIR / "persistent" / "confirmed_multisignals.json"
 CHANNEL_CACHE_FILE = PROJECT_DIR / "runtime" / "telegram_channel_cache.json"
 
-CHAT_ID = "-1003849390782"
+CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
 CHANNEL_USERNAME = "@redcuyum"
 CHANNEL_URL = "https://t.me/redcuyum"
 
@@ -218,6 +218,11 @@ def build_notice(
 def send_message(
     text: str,
 ) -> dict[str, Any]:
+    if not CHAT_ID:
+        raise RuntimeError(
+            "TELEGRAM_CHAT_ID is not configured."
+        )
+
     token = load_token()
 
     url = (

@@ -522,7 +522,35 @@ function displayCellId(cell, i) {
         }).addTo(connectionLayer);
       }
       if (cell.cell_id === 'cell_00') {
-        L.circle([cell.lat, cell.lon], zoneStyle(cell, cells)).addTo(zoneLayer);
+        const localSensors = sensors.filter(sensor =>
+          sensorCellId(sensor) === 'cell_00' &&
+          Number.isFinite(Number(sensor.lat)) &&
+          Number.isFinite(Number(sensor.lon))
+        );
+
+        let localRadius = 22000;
+
+        if (localSensors.length) {
+          const centerPoint = L.latLng(cell.lat, cell.lon);
+
+          const farthestMeters = Math.max(
+            ...localSensors.map(sensor =>
+              centerPoint.distanceTo(
+                L.latLng(Number(sensor.lat), Number(sensor.lon))
+              )
+            )
+          );
+
+          localRadius = Math.max(
+            10000,
+            Math.min(55000, farthestMeters * 0.30)
+          );
+        }
+
+        const style = zoneStyle(cell, cells);
+        style.radius = localRadius;
+
+        L.circle([cell.lat, cell.lon], style).addTo(zoneLayer);
       }
     });
 

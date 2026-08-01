@@ -1,0 +1,4 @@
+{$CUYUM_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy cuyum:5050
+}

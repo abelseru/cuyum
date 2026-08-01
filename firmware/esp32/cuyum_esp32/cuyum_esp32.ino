@@ -1,4 +1,6 @@
 #include <WiFi.h>
+#include <WiFiClient.h>
+#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
@@ -43,8 +45,7 @@ SSD1306Wire oled(
   SDA_OLED,
   SCL_OLED,
   GEOMETRY_128_64,
-  RST_OLED
-);
+  RST_OLED);
 
 // -----------------------------------------------------------------------------
 // Timing
@@ -155,26 +156,17 @@ String directionInSpanish(String value) {
   if (direction == "S" || direction == "SOUTH") return "Sur";
 
   if (
-    direction == "SW" ||
-    direction == "SO" ||
-    direction == "SOUTHWEST"
-  ) {
+    direction == "SW" || direction == "SO" || direction == "SOUTHWEST") {
     return "Suroeste";
   }
 
   if (
-    direction == "W" ||
-    direction == "O" ||
-    direction == "WEST"
-  ) {
+    direction == "W" || direction == "O" || direction == "WEST") {
     return "Oeste";
   }
 
   if (
-    direction == "NW" ||
-    direction == "NO" ||
-    direction == "NORTHWEST"
-  ) {
+    direction == "NW" || direction == "NO" || direction == "NORTHWEST") {
     return "Noroeste";
   }
 
@@ -189,9 +181,7 @@ String networkInSpanish(String value) {
   String text = lowerCase(value);
 
   if (
-    text.indexOf("complete") >= 0 ||
-    text.indexOf("full") >= 0
-  ) {
+    text.indexOf("complete") >= 0 || text.indexOf("full") >= 0) {
     return "Red completa";
   }
 
@@ -200,16 +190,12 @@ String networkInSpanish(String value) {
   }
 
   if (
-    text.indexOf("limited") >= 0 ||
-    text.indexOf("minimal") >= 0
-  ) {
+    text.indexOf("limited") >= 0 || text.indexOf("minimal") >= 0) {
     return "Red limitada";
   }
 
   if (
-    text.indexOf("offline") >= 0 ||
-    text.indexOf("no data") >= 0
-  ) {
+    text.indexOf("offline") >= 0 || text.indexOf("no data") >= 0) {
     return "Red sin datos";
   }
 
@@ -220,16 +206,12 @@ String levelInSpanish(String level, String message) {
   String text = lowerCase(level + " " + message);
 
   if (
-    text.indexOf("attention") >= 0 ||
-    text.indexOf("anticip") >= 0
-  ) {
+    text.indexOf("attention") >= 0 || text.indexOf("anticip") >= 0) {
     return "Atencion";
   }
 
   if (
-    text.indexOf("watch") >= 0 ||
-    text.indexOf("observ") >= 0
-  ) {
+    text.indexOf("watch") >= 0 || text.indexOf("observ") >= 0) {
     return "Observando";
   }
 
@@ -238,9 +220,7 @@ String levelInSpanish(String level, String message) {
   }
 
   if (
-    text.indexOf("offline") >= 0 ||
-    text.indexOf("no data") >= 0
-  ) {
+    text.indexOf("offline") >= 0 || text.indexOf("no data") >= 0) {
     return "Sin datos";
   }
 
@@ -369,9 +349,7 @@ void showZonesScreen(int page) {
     ZoneData zone = statusData.zones[zoneIndex];
 
     lines[row + 1] =
-      shorten(zone.name, 13) +
-      ": " +
-      String(zone.activeSensors);
+      shorten(zone.name, 13) + ": " + String(zone.activeSensors);
   }
 
   drawLines(lines, 6);
@@ -388,9 +366,7 @@ void showAttentionScreen() {
 
   if (statusData.attentionWarningSeconds > 0) {
     warningText =
-      "Tiempo: " +
-      String(statusData.attentionWarningSeconds, 1) +
-      " s";
+      "Tiempo: " + String(statusData.attentionWarningSeconds, 1) + " s";
   }
 
   String lines[6] = {
@@ -430,9 +406,7 @@ void updateScreen(bool forceUpdate) {
   unsigned long now = millis();
 
   if (
-    !forceUpdate &&
-    now - lastScreenTime < SCREEN_INTERVAL_MS
-  ) {
+    !forceUpdate && now - lastScreenTime < SCREEN_INTERVAL_MS) {
     return;
   }
 
@@ -512,8 +486,7 @@ void updateSuccessfulPollPulse() {
   }
 
   if (
-    millis() - successfulPollPulseStartedAt >= BEEP_ON_MS
-  ) {
+    millis() - successfulPollPulseStartedAt >= BEEP_ON_MS) {
     successfulPollPulseActive = false;
     writeIdleOutputs();
   }
@@ -544,9 +517,7 @@ void updateNoticePattern() {
   unsigned long now = millis();
 
   if (
-    patternOutputOn &&
-    now - patternPhaseTime >= BEEP_ON_MS
-  ) {
+    patternOutputOn && now - patternPhaseTime >= BEEP_ON_MS) {
     writeNoticeOutputs(false);
 
     patternOutputOn = false;
@@ -563,9 +534,7 @@ void updateNoticePattern() {
   }
 
   if (
-    !patternOutputOn &&
-    now - patternPhaseTime >= BEEP_OFF_MS
-  ) {
+    !patternOutputOn && now - patternPhaseTime >= BEEP_OFF_MS) {
     writeNoticeOutputs(true);
 
     patternOutputOn = true;
@@ -615,9 +584,7 @@ void connectWiFi() {
   int attempts = 0;
 
   while (
-    WiFi.status() != WL_CONNECTED &&
-    attempts < 30
-  ) {
+    WiFi.status() != WL_CONNECTED && attempts < 30) {
     updateNoticePattern();
     delay(500);
 
@@ -670,9 +637,7 @@ void readZones(JsonVariant root) {
 
     // Regional observers are useful to Cuyum but are not a direction screen.
     if (
-      cellId == "regional_observers" ||
-      role == "regional_observer"
-    ) {
+      cellId == "regional_observers" || role == "regional_observer") {
       continue;
     }
 
@@ -771,11 +736,31 @@ void pollCuyumStatus() {
   }
 
   HTTPClient http;
+  WiFiClient normalClient;
+  WiFiClientSecure secureClient;
 
   Serial.print("Polling: ");
   Serial.println(STATUS_URL);
 
-  http.begin(STATUS_URL);
+  bool connectionStarted = false;
+  String statusUrl = String(STATUS_URL);
+
+  if (statusUrl.startsWith("https://")) {
+    secureClient.setInsecure();
+    connectionStarted = http.begin(secureClient, STATUS_URL);
+  } else if (statusUrl.startsWith("http://")) {
+    connectionStarted = http.begin(normalClient, STATUS_URL);
+  } else {
+    Serial.println("Invalid STATUS_URL protocol.");
+    showErrorScreen("Error de URL", "Use HTTP o HTTPS");
+    return;
+  }
+
+  if (!connectionStarted) {
+    Serial.println("Could not initialize HTTP connection.");
+    showErrorScreen("Error de red", "No inicia HTTP");
+    return;
+  }
 
   int responseCode = http.GET();
 
@@ -806,8 +791,6 @@ void pollCuyumStatus() {
     return;
   }
 
-  // Confirmación visual de una lectura y parseo correctos.
-  // El buzzer permanece apagado.
   startSuccessfulPollPulse();
 
   Serial.print("Level: ");

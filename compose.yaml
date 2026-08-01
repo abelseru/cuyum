@@ -1,0 +1,58 @@
+services:
+  cuyum:
+    env_file:
+      - setup.env
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: cuyum
+
+    restart: unless-stopped
+
+    volumes:
+      - ./runtime:/app/runtime
+      - ./persistent:/app/persistent
+      - ./config:/app/config
+      - ./secrets:/app/secrets:ro
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5050/lite', timeout=4)"
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+  caddy:
+    image: caddy:2-alpine
+
+    container_name: cuyum-caddy
+
+    restart: unless-stopped
+
+    depends_on:
+      cuyum:
+        condition: service_healthy
+
+    env_file:
+      - setup.env
+
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
