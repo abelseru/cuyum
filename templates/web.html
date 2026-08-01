@@ -1193,29 +1193,47 @@
     renderPublicActivity(data);
   }
 
+  let initialLoad=true;
+
   async function loadOnce(){
     const status=document.getElementById('statusText');
     const summary=document.getElementById('mapSummary');
     const summaryMobile=document.getElementById('mapSummaryMobile');
+    const loadingStarted=performance.now();
 
     try{
-      status.className='normal';
-      status.textContent='Conectando…';
-      summary.textContent='Leyendo el estado actual de Cuyum…';
-      summaryMobile.textContent='Leyendo el estado actual de Cuyum…';
+      if(initialLoad){
+        status.className='normal';
+        status.textContent='Conectando…';
+        summary.textContent='Leyendo el estado actual de Cuyum…';
+        summaryMobile.textContent='Leyendo el estado actual de Cuyum…';
+      }
 
       const response=await fetch(JSON_URL,{cache:'no-store'});
       if(!response.ok)throw new Error(`HTTP ${response.status}`);
 
-      render(await response.json());
-    }catch(error){
-      sensorsLayer.clearLayers();
-      zoneLayer.clearLayers();
-      linksLayer.clearLayers();
+      const data=await response.json();
 
-      status.className='signal';
-      status.textContent='No se pudo leer Cuyum';
-      summary.textContent='No se pudo abrir /json.';
+      if(initialLoad){
+        const elapsed=performance.now()-loadingStarted;
+        const remaining=300-elapsed;
+
+        if(remaining>0){
+          await new Promise(resolve=>setTimeout(resolve,remaining));
+        }
+      }
+
+      render(data);
+      initialLoad=false;
+    }catch(error){
+      status.className='alert';
+
+      if(initialLoad){
+        status.textContent='No se pudo leer Cuyum';
+        summary.textContent='No se pudo abrir /json.';
+        summaryMobile.textContent='No se pudo abrir /json.';
+      }
+
       console.error(error);
     }
   }
