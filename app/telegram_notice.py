@@ -18,7 +18,7 @@ PROJECT_DIR = Path(__file__).resolve().parent.parent
 TOKEN_FILE = PROJECT_DIR / "secrets" / "telegram_bot_token.txt"
 TEXT_FILE = PROJECT_DIR / "config" / "ui_es.json"
 STATE_FILE = PROJECT_DIR / "runtime" / "telegram_notice_state.json"
-HISTORY_FILE = PROJECT_DIR / "runtime" / "confirmed_multisignals.json"
+HISTORY_FILE = PROJECT_DIR / "persistent" / "confirmed_multisignals.json"
 CHANNEL_CACHE_FILE = PROJECT_DIR / "runtime" / "telegram_channel_cache.json"
 
 CHAT_ID = "-1003849390782"
@@ -596,12 +596,19 @@ def record_confirmed_multisignal(
     cell_id: str,
     direction: str,
     seconds: int,
-    message_id: int,
     texts: dict[str, Any],
 ) -> dict[str, Any]:
     history = load_confirmed_history()
 
+    record_id = int(
+        history.get(
+            "total",
+            0,
+        )
+    ) + 1
+
     event = {
+        "id": record_id,
         "timestamp": datetime.now(
             timezone.utc
         ).isoformat(),
@@ -612,7 +619,6 @@ def record_confirmed_multisignal(
             texts,
         ),
         "warning_seconds": seconds,
-        "telegram_message_id": message_id,
     }
 
     recent = list(
@@ -622,17 +628,12 @@ def record_confirmed_multisignal(
         )
     )
 
-    recent.append(event)
+    recent.insert(0, event)
 
     updated_history = {
-        "total": int(
-            history.get(
-                "total",
-                0,
-            )
-        ) + 1,
+        "total": record_id,
         "recent": recent[
-            -MAX_RECENT_EVENTS:
+            :MAX_RECENT_EVENTS
         ],
     }
 
@@ -660,9 +661,7 @@ def confirmed_multisignals_snapshot() -> dict[str, Any]:
                 0,
             )
         ),
-        "recent": list(
-            reversed(recent)
-        ),
+        "recent": recent,
     }
 
 
@@ -690,37 +689,69 @@ def publish_fused_notice(
 
         texts = load_ui_texts()
 
-        message = build_notice(
-            direction,
-            seconds,
-            texts,
-        )
-
-        result = send_message(
-            message
-        )
-
-        message_id = int(
-            result["result"]["message_id"]
-        )
-
-        record_confirmed_multisignal(
+        # El registro propio de Cuyum se crea antes de intentar Telegram.
+        event = record_confirmed_multisignal(
             cell_id=cell_id,
             direction=direction,
             seconds=seconds,
-            message_id=message_id,
             texts=texts,
         )
 
+        record_id = int(
+            event["id"]
+        )
+
+        # El episodio queda marcado inmediatamente para evitar duplicados,
+        # incluso si Telegram no está disponible.
         save_notice_state(
             {
                 "active": True,
                 "cell_id": cell_id,
                 "direction": direction,
                 "seconds": seconds,
-                "message_id": message_id,
+                "record_id": record_id,
             }
         )
+
+        message = build_notice(
+            direction,
+            seconds,
+            texts,
+        )
+
+        # No se modifica el mensaje actual:
+        # solo se añade una línea vacía y el ID propio de Cuyum.
+        message = (
+            f"{message.rstrip()}\n\n"
+            f"ID #{record_id}"
+        )
+
+        try:
+            result = send_message(
+                message
+            )
+
+            # Telegram confirmó la publicación.
+            # Su identificador interno no forma parte de la trazabilidad de Cuyum.
+            save_notice_state(
+                {
+                    "active": True,
+                    "cell_id": cell_id,
+                    "direction": direction,
+                    "seconds": seconds,
+                    "record_id": record_id,
+                }
+            )
+
+        except Exception as error:
+            print(
+                (
+                    "Telegram notice error after "
+                    f"Cuyum record ID #{record_id}: "
+                    f"{error}"
+                ),
+                file=sys.stderr,
+            )
 
         return True
 

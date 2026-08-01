@@ -110,6 +110,10 @@ unsigned long patternPhaseTime = 0;
 // This latch prevents the five-beep pattern from repeating on every poll.
 bool soundEpisodeLatched = false;
 
+// Non-blocking visual confirmation of a successful /lite update.
+bool successfulPollPulseActive = false;
+unsigned long successfulPollPulseStartedAt = 0;
+
 // -----------------------------------------------------------------------------
 // Screen rotation state
 // -----------------------------------------------------------------------------
@@ -465,11 +469,16 @@ void writeNoticeOutputs(bool turnOn) {
   }
 }
 
+void writeIdleOutputs() {
+  digitalWrite(LED_PIN, LED_ON);
+  digitalWrite(BUZZER_PIN, BUZZER_OFF);
+}
+
 void prepareNoticeOutputs() {
   pinMode(LED_PIN, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
 
-  writeNoticeOutputs(false);
+  writeIdleOutputs();
 }
 
 void runStartupTest() {
@@ -477,13 +486,45 @@ void runStartupTest() {
 
   writeNoticeOutputs(true);
   delay(BEEP_ON_MS);
-  writeNoticeOutputs(false);
+  writeIdleOutputs();
+}
+
+void startSuccessfulPollPulse() {
+  if (patternRunning) {
+    return;
+  }
+
+  successfulPollPulseActive = true;
+  successfulPollPulseStartedAt = millis();
+
+  digitalWrite(LED_PIN, LED_OFF);
+  digitalWrite(BUZZER_PIN, BUZZER_OFF);
+}
+
+void updateSuccessfulPollPulse() {
+  if (!successfulPollPulseActive) {
+    return;
+  }
+
+  if (patternRunning) {
+    successfulPollPulseActive = false;
+    return;
+  }
+
+  if (
+    millis() - successfulPollPulseStartedAt >= BEEP_ON_MS
+  ) {
+    successfulPollPulseActive = false;
+    writeIdleOutputs();
+  }
 }
 
 void startNoticePattern() {
   if (patternRunning) {
     return;
   }
+
+  successfulPollPulseActive = false;
 
   patternRunning = true;
   patternOutputOn = true;
@@ -514,6 +555,7 @@ void updateNoticePattern() {
 
     if (completedBeeps >= NOTICE_BEEP_COUNT) {
       patternRunning = false;
+      writeIdleOutputs();
       Serial.println("NOTICE_PATTERN_END");
     }
 
@@ -764,6 +806,10 @@ void pollCuyumStatus() {
     return;
   }
 
+  // Confirmación visual de una lectura y parseo correctos.
+  // El buzzer permanece apagado.
+  startSuccessfulPollPulse();
+
   Serial.print("Level: ");
   Serial.println(statusData.level);
 
@@ -812,6 +858,7 @@ void setup() {
 
 void loop() {
   updateNoticePattern();
+  updateSuccessfulPollPulse();
   readSerialCommands();
 
   unsigned long now = millis();
@@ -823,4 +870,5 @@ void loop() {
 
   updateScreen(false);
   updateNoticePattern();
+  updateSuccessfulPollPulse();
 }

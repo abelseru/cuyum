@@ -13,11 +13,18 @@
   <main class="cuyum-live">
     <aside class="readout" aria-live="polite">
       <header class="brand-bar">
-        <img src="/static/cuyum_logo_v2.webp?v=2" alt="Cuyum" class="brand-mark">
-        <div class="brand-copy">
-          <strong>Cuyum</strong>
-          <span>red experimental</span>
-        </div>
+        <a
+          class="brand-link"
+          href="/web"
+          title="Ir al sitio de Cuyum"
+          aria-label="Ir al sitio web de Cuyum"
+        >
+          <img src="/static/cuyum_logo_v2.webp?v=2" alt="" class="brand-mark">
+          <div class="brand-copy">
+            <strong>Cuyum</strong>
+            <span>red experimental</span>
+          </div>
+        </a>
         <button id="audioButton" class="audio-button" type="button">Audio</button>
       </header>
 
@@ -67,7 +74,12 @@
       </div>
 
       <footer class="map-footer">
-        <span id="mapSummary">Mapa inicializando...</span>
+        <a
+          class="raw-json-link"
+          href="http://contenidos.inpres.gob.ar/sismologia/xultimos"
+          target="_blank"
+          rel="noopener noreferrer"
+        >🏛️ Ver INPRES</a>
         <a class="raw-json-link" href="/json" target="_blank" rel="noopener">📍 Estado actual</a>
         <a class="raw-json-link" href="/reg" target="_blank" rel="noopener">📦 Registros recientes</a>
       </footer>
@@ -75,6 +87,6 @@
   </main>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="/static/live_cuyum.js?v=app-ui-v2"></script>
+  <script src="/static/live_cuyum.js?v=app-ui-v3"></script>
 </body>
 </html>

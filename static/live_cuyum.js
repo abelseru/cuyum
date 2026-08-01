@@ -417,8 +417,8 @@ function displayCellId(cell, i) {
   }
 
   function makeHomeMarker(zoom = 6) {
-    const size = zoom >= 10 ? 28 : (zoom >= 8 ? 32 : 36);
-    const imgSize = Math.max(22, size - 6);
+    const size = zoom >= 10 ? 44 : (zoom >= 8 ? 50 : 56);
+    const imgSize = Math.max(36, size - 8);
 
     return L.divIcon({
       className: 'cuyum-system-center-icon',
@@ -543,14 +543,6 @@ function displayCellId(cell, i) {
       currentCoverageBounds = bounds;
     }
 
-    const totalSensors = (data.sensors || []).length;
-    const missing = Math.max(0, totalSensors - sensors.length);
-    const missingText = missing ? ` · ${missing} sin ubicación pública` : '';
-    const realZones = cells.filter(c => c.cell_id !== 'regional_observers' && c.role !== 'regional_observer');
-    const observerRows = (data.display_cells || []).filter(c => c.cell_id === 'regional_observers' || c.role === 'regional_observer');
-    const observerCount = observerRows.reduce((sum, c) => sum + Number(c.sensors_active || 0), 0);
-    const observerText = observerCount > 0 ? ` · ${observerCount} observadores` : '';
-    $('mapSummary').textContent = `${sensors.length} sensores en mapa · ${realZones.length} zonas${observerText}${missingText}`;
   }
 
   function playCuyumFiveBeepPattern() {

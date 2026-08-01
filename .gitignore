@@ -54,3 +54,6 @@ firmware/esp32/cuyum_esp32/config.h
 *.before_*
 # Runtime logs
 runtime/logs/
+
+# Persistent local event history
+/persistent/*.json
