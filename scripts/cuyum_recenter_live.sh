@@ -8,7 +8,7 @@ if [ "$#" -ne 3 ]; then
   echo "Examples:"
   echo "  ./scripts/cuyum_recenter_live.sh \"Mendoza\" -32.8895 -68.8458"
   echo "  ./scripts/cuyum_recenter_live.sh \"San Juan\" -31.5375 -68.5364"
-  echo "  ./scripts/cuyum_recenter_live.sh \"Caracas\" 10.4806 -66.9036"
+  echo "  ./scripts/cuyum_recenter_live.sh \"CDMX\" 19.4326 -99.1332"
   exit 1
 fi
 
@@ -18,45 +18,47 @@ LON="$3"
 
 cd "$(dirname "$0")/.."
 
-PY="./venv/bin/python"
-
-if [ ! -x "$PY" ]; then
-  echo "ERROR: Python executable not found: $PY"
+if docker compose version >/dev/null 2>&1; then
+  DC=(docker compose)
+elif sudo docker compose version >/dev/null 2>&1; then
+  DC=(sudo docker compose)
+else
+  echo "ERROR: Docker Compose is not available."
   exit 1
 fi
 
 echo "=============================================="
-echo " CUYUM - RECENTER LIVE"
+echo " CUYUM - RECENTER LIVE (DOCKER)"
 echo "=============================================="
 echo "Center: $LABEL"
 echo "Lat:    $LAT"
 echo "Lon:    $LON"
 echo
 
-echo "[1/8] Stopping Cuyum..."
-if docker compose ps >/dev/null 2>&1; then
-    docker compose down || true
-else
-    sudo docker compose down || true
-fi
+echo "[1/9] Stopping Cuyum..."
+"${DC[@]}" down
 
 echo
-echo "[2/8] Resetting previous live state..."
+echo "[2/9] Building the Cuyum image..."
+"${DC[@]}" build cuyum
+
+echo
+echo "[3/9] Resetting previous live state..."
 rm -f runtime/auto_cell_*_state.json
 rm -f runtime/cell_00_state.json
 rm -f runtime/live_inventory_organizer_report.json
 rm -f runtime/live_inventory_organizer_report.txt
 rm -f config/auto_cell_*_inventory.json
-
 mkdir -p config runtime
 
 echo
-echo "[3/8] Writing config/system_center.json..."
-"$PY" - "$LABEL" "$LAT" "$LON" <<'PY'
+echo "[4/9] Writing config/system_center.json..."
+"${DC[@]}" run --rm --no-deps --entrypoint python cuyum \
+  - "$LABEL" "$LAT" "$LON" <<'PY'
 import json
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 label = sys.argv[1]
 lat = float(sys.argv[2])
@@ -67,32 +69,35 @@ data = {
     "lat": lat,
     "lon": lon,
     "updated_at": datetime.now().isoformat(),
-    "updated_by": "cuyum_recenter_live"
+    "updated_by": "cuyum_recenter_live",
 }
 
 Path("config/system_center.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2),
-    encoding="utf-8"
+    encoding="utf-8",
 )
 
 print(json.dumps(data, ensure_ascii=False, indent=2))
 PY
 
 echo
-echo "[4/8] Rebuilding regional station catalog..."
-"$PY" app/regional_station_catalog_builder.py \
+echo "[5/9] Rebuilding regional station catalog..."
+"${DC[@]}" run --rm --no-deps --entrypoint python cuyum \
+  app/regional_station_catalog_builder.py \
   --label "$LABEL" \
   --lat "$LAT" \
   --lon "$LON" \
   --apply
 
 echo
-echo "[5/8] Rebuilding complete candidate inventory..."
-"$PY" app/regional_candidate_inventory_builder.py --apply
+echo "[6/9] Rebuilding complete candidate inventory..."
+"${DC[@]}" run --rm --no-deps --entrypoint python cuyum \
+  app/regional_candidate_inventory_builder.py --apply
 
 echo
-echo "[6/8] Organizing live inventory with hard limits..."
-"$PY" app/live_inventory_organizer.py \
+echo "[7/9] Organizing live inventory with hard limits..."
+"${DC[@]}" run --rm --no-deps --entrypoint python cuyum \
+  app/live_inventory_organizer.py \
   --local-max-km 200 \
   --local-max 4 \
   --zone-max 4 \
@@ -104,20 +109,16 @@ echo "=== Organizer summary ==="
 cat runtime/live_inventory_organizer_report.txt || true
 
 echo
-echo "[7/8] Starting Cuyum..."
-if docker compose ps >/dev/null 2>&1; then
-    docker compose up -d --build
-else
-    sudo docker compose up -d --build
-fi
+echo "[8/9] Starting Cuyum..."
+"${DC[@]}" up -d
 
 echo
-echo "[8/8] Waiting for initial stabilization..."
+echo "[9/9] Waiting for initial stabilization..."
 sleep 30
 
 echo
 echo "=== Current /json state ==="
-"$PY" - <<'PYJSON' | sed -n '1,140p'
+"${DC[@]}" exec -T cuyum python - <<'PYJSON' | sed -n '1,140p'
 import json
 import urllib.request
 
@@ -135,4 +136,4 @@ echo "=============================================="
 echo " RECENTERING COMPLETE"
 echo "=============================================="
 echo "Open:"
-echo "  http://127.0.0.1:5050/app"
+echo "  https://cuyum.ar/app"
