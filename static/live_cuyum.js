@@ -279,6 +279,22 @@ function displayCellId(cell, i) {
     return String(active);
   }
 
+  function renderCompetentAuthority(data) {
+    const authority = data.competent_authority || {};
+    const name = String(authority.name || "INPRES").trim() || "INPRES";
+    const recordsUrl = String(
+      authority.records_url ||
+      "http://contenidos.inpres.gob.ar/sismologia/xultimos"
+    ).trim();
+
+    const button = $("competentAuthorityButton");
+
+    if (button) {
+      button.textContent = `🏛️ Ver ${name}`;
+      button.href = recordsUrl;
+    }
+  }
+
   function renderCells(cells) {
     const box = $('cellsList');
     box.innerHTML = '';
@@ -644,6 +660,7 @@ function displayCellId(cell, i) {
       const res = await fetch(API, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
+      renderCompetentAuthority(data);
       setStateCard(data);
       renderCells(data.display_cells || []);
       renderMap(data);

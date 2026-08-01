@@ -551,11 +551,11 @@
     <div class="section-grid">
       <div>
         <div class="kicker">El mapa de la red</div>
-        <h2>Nacido en el Gran Mendoza, listo para el mundo.</h2>
+        <h2>Nacido en Argentina, listo para el mundo.</h2>
       </div>
       <div class="copy">
-        <p>Replicándolo en tu propio servidor, Cuyum puede adoptar centro en cualquier parte del mundo.</p>
-        <p>Los puntos violetas son sensores de la zona local. Los celestes pertenecen a células externas. Las líneas muestran cómo se organizan estas zonas en torno a su centro.</p>
+        <p>Replicándolo en tu propio servidor, Cuyum puede adoptar un centro en cualquier parte del mundo.</p>
+        <p>Los puntos violetas son sensores de la zona local. Los celestes pertenecen a celdas externas. Las líneas muestran cómo se organizan estas zonas en torno a su centro.</p>
         <p>Cuando se detecta una señal de posible interés, los sensores involucrados se muestran en rojo, mientras se da aviso claro sobre el tiempo de propagación al centro de la red.</p>
         <div class="legend">
           <div class="legend-item"><span class="dot local"></span>Sensores locales</div>
@@ -574,8 +574,8 @@
       </div>
       <div class="copy">
         <p>Cuyum nació para la escuela y la universidad. Vincula conceptos de programación, redes y datos en vivo con registros sismológicos abiertos y experimentales. Todo ello en un sistema que se puede interpretar y reinventar completamente desde adentro.</p>
-        <p>La interfaz del monitor ha sido diseñada para ejecutarse 24/7 y de forma gratuita en múltiples dispositivos reacondicionados, inclusive en plataformas IoT documentadas, como el ESP-32.</p>
-        <p>Con ajustes mínimos, puede supervisar cualquier parte del mundo (local o remotamente) y reorganizar sus células según las estaciones disponibles.</p>
+        <p>La interfaz del monitor ha sido diseñada para ejecutarse 24/7 en múltiples dispositivos reacondicionados y en sistemas embebidos como el ESP32. Los avisos experimentales también pueden recibirse en el canal de Telegram <span class="telegram-channel-name">@redcuyum</span>.</p>
+        <p>Mediante ajustes mínimos, Cuyum puede supervisar cualquier parte del mundo a través de Internet y reorganizar sus células según las estaciones disponibles.</p>
       </div>
     </div>
   </section>
@@ -616,6 +616,7 @@
               <h3 class="panel-title" id="historyTitle">Registros recientes</h3>
               <a
                 class="btn history-button"
+                id="competentAuthorityButtonWeb"
                 href="http://contenidos.inpres.gob.ar/sismologia/xultimos"
                 target="_blank"
                 rel="noreferrer"
@@ -659,26 +660,26 @@
     <div class="section-grid">
       <div>
         <div class="kicker">Preguntas frecuentes</div>
-        <h2>Respuestas sobre el funcionamiento y propósito.</h2>
+        <h2>Su propósito y funcionamiento</h2>
       </div>
       <div class="copy">
         <p><strong style="color:var(--ink)">¿Qué inspiró la creación de Cuyum?</strong><br>
         Cuyum nació para ayudar a comprender cómo se propagan las señales sísmicas a través del territorio. Integra programación, redes, datos abiertos y observación experimental en una herramienta educativa. No reemplaza a los organismos oficiales: permite estudiar de forma visible y accesible el comportamiento de una red sísmica.</p>
 
         <p><strong style="color:var(--ink)">¿Puedo usar Cuyum en un celular viejo?</strong><br>
-        Sí. Un celular, una tablet o una notebook antigua pueden permanecer conectados a la corriente con el monitor abierto en el navegador. No es necesario instalar una aplicación. El dispositivo solo necesita acceso continuo a Internet para actualizar los datos en tiempo real.</p>
+        Sí. Un celular, una tablet o una notebook antigua pueden permanecer conectados a la corriente con el monitor abierto en el navegador. No es necesario instalar una aplicación. El dispositivo solo necesita acceso continuo a Internet para actualizar los datos en tiempo real. También podrás unirte al canal de Telegram <span class="telegram-channel-name">@redcuyum</span> para recibir avisos experimentales en tiempo real.</p>
 
         <p><strong style="color:var(--ink)">¿Por qué puede funcionar en cualquier parte del mundo?</strong><br>
         Porque Cuyum no depende de una ubicación fija. El sistema adopta un centro geográfico y organiza las estaciones disponibles alrededor de ese punto. Al cambiar la configuración, puede adaptarse a otra ciudad o región, siempre que existan estaciones sísmicas abiertas y accesibles.</p>
 
         <p><strong style="color:var(--ink)">¿Cómo puedo implementarlo en mi comunidad?</strong><br>
-        Se necesita una computadora o servidor, acceso a internet y estaciones sísmicas abiertas cercanas. Luego se configura el centro geográfico, se verifican las fuentes de datos y se observa el funcionamiento durante varios días. El monitor puede compartirse dentro de una escuela, institución o comunidad.</p>
+        Se necesita un servidor en la nube (VPS) con 2 GB de RAM, Ubuntu, Docker, opcionalmente un dominio propio y estaciones sísmicas abiertas en el territorio que desees supervisar. Podrás configurar las coordenadas de tu centro y validar eventos durante unos días. Tanto el monitor como la página se adaptan por completo a tu comunidad.</p>
 
         <p><strong style="color:var(--ink)">¿Qué información puede mostrar Cuyum?</strong><br>
-        Cuyum muestra sensores disponibles, zonas de observación, señales detectadas y tiempos estimados de propagación hacia el centro configurado. También conserva registros experimentales de las multiseñales confirmadas por la red.</p>
+        Cuyum muestra sensores disponibles, zonas de observación, señales detectadas y tiempos estimados de propagación hacia el centro configurado. También conserva registros experimentales de las multiseñales confirmadas por la red. Se encuentran a disposición el firmware y la documentación para crear tu propio observador Cuyum con ESP32 y recibir nuestros avisos experimentales las 24 horas.</p>
 
         <p><strong style="color:var(--ink)">¿Qué información no determina Cuyum?</strong><br>
-        Cuyum no calcula magnitudes, no determina epicentros y no reemplaza la información de los organismos oficiales. Sus registros son experimentales y deben compararse con las publicaciones del INPRES y de otras instituciones sismológicas.</p>
+        Cuyum no calcula magnitudes, no determina epicentros y no reemplaza la información de los organismos oficiales. Sus registros son experimentales y deben compararse con las publicaciones de <span class="competent-authority-name">INPRES</span> y de otras instituciones sismológicas.</p>
       </div>
     </div>
   </section>
@@ -687,7 +688,7 @@
     <div class="open-row">
       <div>
         <strong><i>¿Te animás a replicar Cuyum para tu zona?</i></strong>
-        <p>Como proyecto abierto y experimental, el código está publicado bajo la licencia GNU GPL v3.0 o posterior. Esta iniciativa no reemplaza al INPRES ni a otros organismos oficiales.</p>
+        <p>Como proyecto abierto y experimental, el código está publicado bajo la licencia GNU GPL v3.0 o posterior. Esta iniciativa no reemplaza a <span class="competent-authority-name">INPRES</span> ni a otros organismos oficiales.</p>
         <p>Desarrollado por <a href="https://www.linkedin.com/in/abelseru/" target="_blank" rel="noreferrer"><strong>Abel Serú</strong></a>, se utilizó ChatGPT de OpenAI, versión 5.5, consultado el mes de julio de 2026, como apoyo para ensayos, codificación y gestión de versiones. Contacto y más información: <a href="mailto:aseru@mendoza.edu.ar"><strong>aseru@mendoza.edu.ar</strong></a></p>
       </div>
       <div class="actions">
@@ -903,6 +904,7 @@
     const statistics=data.statistics||{};
     const history=data.confirmed_multisignals||{};
     const telegram=data.telegram||{};
+    const authority=data.competent_authority||{};
 
     const equivalent=Number(
       statistics.equivalent_active_clients
@@ -933,6 +935,31 @@
 
     telegramButton.textContent=`Telegram · ${channel}`;
     telegramButton.href=url;
+
+    document.querySelectorAll('.telegram-channel-name')
+      .forEach(element=>{
+        element.textContent=channel;
+      });
+
+    const authorityName=safeText(authority.name,'INPRES');
+    const authorityUrl=safeText(
+      authority.records_url,
+      'http://contenidos.inpres.gob.ar/sismologia/xultimos'
+    );
+
+    const authorityButton=document.getElementById(
+      'competentAuthorityButtonWeb'
+    );
+
+    if(authorityButton){
+      authorityButton.textContent=`Ver ${authorityName}`;
+      authorityButton.href=authorityUrl;
+    }
+
+    document.querySelectorAll('.competent-authority-name')
+      .forEach(element=>{
+        element.textContent=authorityName;
+      });
 
     const container=document.getElementById('multisignalHistory');
     const recent=Array.isArray(history.recent)

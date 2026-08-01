@@ -16,6 +16,19 @@ SYSTEM_CENTER_FILE = "config/system_center.json"
 HOME_FALLBACK = {"lat": -32.8895, "lon": -68.8458, "label": "Local point"}
 MAX_PUBLIC_SENSORS = 80
 
+COMPETENT_AUTHORITY_NAME = (
+    os.environ.get("COMPETENT_AUTHORITY_NAME", "INPRES").strip()
+    or "INPRES"
+)
+
+COMPETENT_AUTHORITY_RECORDS_URL = (
+    os.environ.get(
+        "COMPETENT_AUTHORITY_RECORDS_URL",
+        "http://contenidos.inpres.gob.ar/sismologia/xultimos",
+    ).strip()
+    or "http://contenidos.inpres.gob.ar/sismologia/xultimos"
+)
+
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
@@ -646,5 +659,9 @@ def build_public_live():
         "telegram": (
             telegram_notice.telegram_channel_snapshot()
         ),
+        "competent_authority": {
+            "name": COMPETENT_AUTHORITY_NAME,
+            "records_url": COMPETENT_AUTHORITY_RECORDS_URL,
+        },
         "notice": "Experimental network. It does not replace official sources or institutional procedures.",
     }

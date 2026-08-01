@@ -22,8 +22,15 @@ HISTORY_FILE = PROJECT_DIR / "persistent" / "confirmed_multisignals.json"
 CHANNEL_CACHE_FILE = PROJECT_DIR / "runtime" / "telegram_channel_cache.json"
 
 CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
-CHANNEL_USERNAME = "@redcuyum"
-CHANNEL_URL = "https://t.me/redcuyum"
+CHANNEL_USERNAME = os.environ.get(
+    "TELEGRAM_CHANNEL_USERNAME",
+    "@redcuyum",
+).strip()
+
+CHANNEL_URL = os.environ.get(
+    "TELEGRAM_CHANNEL_URL",
+    "https://t.me/redcuyum",
+).strip()
 
 TARGET_EVENT_LEVEL = "multicell_anticipation"
 MAX_RECENT_EVENTS = 10
