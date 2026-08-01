@@ -140,6 +140,9 @@
       border-radius:7px;
       border:1px solid var(--line)
     }
+    .map-note-mobile{
+      display:none
+    }
 
     .hero-content{
       width:min(1120px,calc(100% - 36px));
@@ -469,7 +472,18 @@
       .map-stage{height:52vh;min-height:390px}
       .map-status{top:10px;left:58px;right:10px}
       .chip:last-child{display:none}
-      .map-note{left:10px;bottom:108px}
+      .map-note{display:none}
+      .map-note-mobile{
+        display:block;
+        margin:10px 14px 0;
+        color:var(--muted);
+        font-size:.78rem;
+        text-align:center;
+        background:rgba(5,8,13,.92);
+        padding:8px 10px;
+        border-radius:7px;
+        border:1px solid var(--line)
+      }
       .stats{grid-template-columns:1fr 1fr}
       .history-item{
         grid-template-columns:1fr auto;
@@ -507,6 +521,8 @@
     </div>
     <div class="map-note" id="mapSummary">Cargando sensores…</div>
   </div>
+
+  <div class="map-note-mobile" id="mapSummaryMobile">Cargando sensores…</div>
 
   <div class="hero-content">
     <div>
@@ -1141,8 +1157,11 @@
           0
         );
 
-    document.getElementById('mapSummary').textContent=
+    const mapSummaryText=
       `${activeSensors} sensores activos · ${activeCells}/${configuredCells} celdas activas`;
+
+    document.getElementById('mapSummary').textContent=mapSummaryText;
+    document.getElementById('mapSummaryMobile').textContent=mapSummaryText;
 
     renderPublicActivity(data);
   }
@@ -1150,11 +1169,13 @@
   async function loadOnce(){
     const status=document.getElementById('statusText');
     const summary=document.getElementById('mapSummary');
+    const summaryMobile=document.getElementById('mapSummaryMobile');
 
     try{
       status.className='normal';
       status.textContent='Conectando…';
       summary.textContent='Leyendo el estado actual de Cuyum…';
+      summaryMobile.textContent='Leyendo el estado actual de Cuyum…';
 
       const response=await fetch(JSON_URL,{cache:'no-store'});
       if(!response.ok)throw new Error(`HTTP ${response.status}`);
