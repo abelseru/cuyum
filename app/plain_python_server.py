@@ -354,6 +354,11 @@ class CuyumHandler(BaseHTTPRequestHandler):
                     **status_activity_snapshot(),
                 }
 
+                # Idioma predeterminado configurado para clientes físicos,
+                # incluido el ESP32.
+                payload["enable_english"] = ENABLE_ENGLISH
+                payload["language"] = "en" if ENABLE_ENGLISH else "es"
+
                 self.send_json(payload)
                 return
 
