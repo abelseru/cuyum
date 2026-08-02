@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Cuyum</title>
-  <meta name="description" content="Cuyum observa señales sísmicas en tiempo real.">
+  <meta name="description" content="Cuyum monitors seismic signals in real time.">
   <link rel="icon" href="/static/cuyum_favicon_64.png">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <style>
@@ -433,7 +433,7 @@
       background:var(--red);
       box-shadow:0 0 0 6px rgba(229,64,47,.22)
     }
-
+    
     .leaflet-top, .leaflet-bottom {
       z-index: 400 !important;
     }
@@ -492,7 +492,7 @@
       .history-date{grid-column:1/-1}
       footer{display:block}
     }
-
+  
   /* Selector flotante del idioma alternativo */
   .cuyum-language-control {
     margin-top: 8px !important;
@@ -796,15 +796,15 @@
 <header class="topbar">
   <div class="brand">
     <img src="/static/cuyum_logo_app.png" alt="">
-    <span>Cuyum — Monitoreo sísmico experimental</span>
+    <span>Cuyum — Experimental seismic monitoring</span>
   </div>
   <nav class="nav">
-    <a href="#mapa">El mapa</a>
-    <a href="#proyecto">El proyecto</a>
-    <a href="#actividad">Actividad</a>
-    <a href="#faq">Preguntas</a>
-    <a href="#Implementar">Implementar</a>
-    <a class="primary" href="/app">Abrir monitor</a>
+    <a href="#mapa">The map</a>
+    <a href="#proyecto">The project</a>
+    <a href="#actividad">Activity</a>
+    <a href="#faq">Questions</a>
+    <a href="#Implementar">Deploy</a>
+    <a class="primary" href="/app">Open monitor</a>
   </nav>
 </header>
 
@@ -814,33 +814,33 @@
     <div class="map-fade"></div>
     <div class="map-bottom-cover"></div>
     <div class="map-status">
-      <div class="chip" id="mapStatus">Red <b>activa</b></div>
-      <div class="chip">Centro actual: <b id="mapCenter">Gran Mendoza</b></div>
+      <div class="chip" id="mapStatus">Network <b>active</b></div>
+      <div class="chip">Current center: <b id="mapCenter">Gran Mendoza</b></div>
     </div>
-    <div class="map-note" id="mapSummary">Cargando sensores…</div>
+    <div class="map-note" id="mapSummary">Loading sensors…</div>
   </div>
 
-  <div class="map-note-mobile" id="mapSummaryMobile">Cargando sensores…</div>
+  <div class="map-note-mobile" id="mapSummaryMobile">Loading sensors…</div>
 
   <div class="hero-content">
     <div>
-      <div class="eyebrow">Observación sísmica en tiempo real</div>
-      <h1>Cuyum detecta eventos sísmicos utilizando datos públicos del territorio.</h1>
+      <div class="eyebrow">Real-time seismic observation</div>
+      <h1>Cuyum detects seismic events using public data from the territory.</h1>
     </div>
     <div class="hero-side">
-      <p class="intro">Esta iniciativa educativa y experimental de software libre supervisa señales telúricas en un radio de aproximadamente <strong id="coverageRadius">—</strong> km desde su centro en un sistema autoadaptable. Cuando múltiples sensores confirman una señal, Cuyum calcula y almacena su tiempo estimado de propagación hacia su centro.</p>
+      <p class="intro">This educational and experimental free-software initiative monitors seismic signals within an approximate radius of <strong id="coverageRadius">—</strong> km from its center through a self-adapting system. When multiple sensors confirm a signal, Cuyum calculates and stores its estimated propagation time toward the center.</p>
       <div class="actions">
-        <a class="btn primary" href="/app">Ver el monitor</a>
-        <a class="btn" href="#proyecto">Conocer el proyecto</a>
+        <a class="btn primary" href="/app">Open the monitor</a>
+        <a class="btn" href="#proyecto">Learn about the project</a>
       </div>
     </div>
   </div>
 
   <div class="stats">
-    <div class="stat"><span>Estado</span><strong id="statusText" class="normal">Conectando…</strong></div>
-    <div class="stat"><span>Centro</span><strong id="centerText">Gran Mendoza</strong></div>
-    <div class="stat"><span>Sensores visibles</span><strong id="sensorsText">—</strong></div>
-    <div class="stat"><span>Celdas</span><strong id="cellsText">—</strong></div>
+    <div class="stat"><span>Status</span><strong id="statusText" class="normal">Connecting…</strong></div>
+    <div class="stat"><span>Center</span><strong id="centerText">Gran Mendoza</strong></div>
+    <div class="stat"><span>Visible sensors</span><strong id="sensorsText">—</strong></div>
+    <div class="stat"><span>Cells</span><strong id="cellsText">—</strong></div>
   </div>
 </section>
 
@@ -848,17 +848,17 @@
   <section class="section">
     <div class="section-grid">
       <div>
-        <div class="kicker">El mapa de la red</div>
-        <h2>Nacido en Argentina, listo para el mundo.</h2>
+        <div class="kicker">The network map</div>
+        <h2>Born in Argentina, ready for the world.</h2>
       </div>
       <div class="copy">
-        <p>Replicándolo en tu propio servidor, Cuyum puede adoptar un centro en cualquier parte del mundo.</p>
-        <p>Los puntos violetas son sensores de la zona local. Los celestes pertenecen a celdas externas. Las líneas muestran cómo se organizan estas zonas en torno a su centro.</p>
-        <p>Cuando se detecta una señal de posible interés, los sensores involucrados se muestran en rojo, mientras se da aviso claro sobre el tiempo de propagación al centro de la red.</p>
+        <p>By replicating it on your own server, Cuyum can adopt a center anywhere in the world.</p>
+        <p>Purple points represent sensors in the local area. Light-blue points belong to external cells. The lines show how these areas are organized around the center.</p>
+        <p>When a potentially relevant signal is detected, the sensors involved are shown in red while the estimated propagation time toward the network center is clearly reported.</p>
         <div class="legend">
-          <div class="legend-item"><span class="dot local"></span>Sensores locales</div>
-          <div class="legend-item"><span class="dot external"></span>Sensores externos</div>
-          <div class="legend-item"><span class="dot event"></span>Señal observada</div>
+          <div class="legend-item"><span class="dot local"></span>Local sensors</div>
+          <div class="legend-item"><span class="dot external"></span>External sensors</div>
+          <div class="legend-item"><span class="dot event"></span>Observed signal</div>
         </div>
       </div>
     </div>
@@ -867,13 +867,13 @@
   <section class="section" id="proyecto">
     <div class="section-grid">
       <div>
-        <div class="kicker">Aprendizaje y compromiso</div>
-        <h2>Pensado y desarrollado para conocer el territorio.</h2>
+        <div class="kicker">Learning and commitment</div>
+        <h2>Designed and developed to understand the territory.</h2>
       </div>
       <div class="copy">
-        <p>Cuyum nació para la escuela y la universidad. Vincula conceptos de programación, redes y datos en vivo con registros sismológicos abiertos y experimentales. Todo ello en un sistema que se puede interpretar y reinventar completamente desde adentro.</p>
-        <p>La interfaz del monitor ha sido diseñada para ejecutarse 24/7 en múltiples dispositivos reacondicionados y en sistemas embebidos como el ESP32. Los avisos experimentales también pueden recibirse en el canal de Telegram <span class="telegram-channel-name">@redcuyum</span>.</p>
-        <p>Mediante ajustes mínimos, Cuyum puede supervisar cualquier parte del mundo a través de Internet y reorganizar sus células según las estaciones disponibles.</p>
+        <p>Cuyum was created for schools and universities. It connects programming, networking and live-data concepts with open and experimental seismological records, all within a system that can be fully understood and reinvented from within.</p>
+        <p>The monitor interface is designed to run 24/7 on multiple refurbished devices and embedded systems such as the ESP32. Experimental notices can also be received through the Telegram channel <span class="telegram-channel-name">@redcuyum</span>.</p>
+        <p>With minimal adjustments, Cuyum can monitor any part of the world through the Internet and reorganize its cells according to the stations available.</p>
       </div>
     </div>
   </section>
@@ -881,54 +881,54 @@
   <section class="section" id="actividad">
     <div class="section-grid">
       <div>
-        <div class="kicker">Actividad pública</div>
-        <h2>Una red abierta que deja registro.</h2>
+        <div class="kicker">Public activity</div>
+        <h2>An open network that keeps a record.</h2>
       </div>
 
       <div class="copy">
-        <p>Cuyum publica una estimación de la actividad actual, conserva un historial experimental de multiseñales confirmadas y mantiene un canal abierto para compartir sus registros.</p>
+        <p>Cuyum publishes an estimate of current activity, preserves an experimental history of confirmed multisignals and maintains an open channel for sharing its records.</p>
 
         <div class="activity-overview">
           <div class="activity-card">
-            <span>Carga equivalente*</span>
+            <span>Equivalent load*</span>
             <strong id="equivalentClients">—</strong>
-            <small>Dispositivos en proceso de consulta.</small>
+            <small>Devices currently requesting data.</small>
           </div>
 
           <div class="activity-card">
-            <span>Historial Cuyum</span>
+            <span>Cuyum history</span>
             <strong id="multisignalTotal">0</strong>
-            <small id="historyCenterText">Multiseñales registradas en el centro actual.</small>
+            <small id="historyCenterText">Multisignals recorded at the current center.</small>
           </div>
 
           <div class="activity-card">
-            <span>Canal de Telegram</span>
+            <span>Telegram channel</span>
             <strong id="telegramMembers">—</strong>
-            <small>Miembros suscriptos al canal.</small>
+            <small>Channel subscribers.</small>
           </div>
         </div>
 
         <div class="activity-detail">
           <div class="history-panel">
             <div class="history-heading">
-              <h3 class="panel-title" id="historyTitle">Registros recientes</h3>
+              <h3 class="panel-title" id="historyTitle">Recent records</h3>
               <a
                 class="btn history-button"
                 id="competentAuthorityButtonWeb"
                 href="http://contenidos.inpres.gob.ar/sismologia/xultimos"
                 target="_blank"
                 rel="noreferrer"
-              >Ver INPRES</a>
+              >View INPRES</a>
             </div>
 
             <div class="history-list" id="multisignalHistory">
-              <p class="history-empty">Leyendo el historial experimental…</p>
+              <p class="history-empty">Loading experimental history…</p>
             </div>
           </div>
 
           <div class="telegram-panel">
-            <h3 class="panel-title">Seguir la red</h3>
-            <p>El canal comparte avisos experimentales en tiempo real. No constituye información oficial.</p>
+            <h3 class="panel-title">Follow the network</h3>
+            <p>The channel shares experimental notices in real time. It does not constitute official information.</p>
 
             <div class="actions">
               <a
@@ -949,7 +949,7 @@
           </div>
         </div>
 
-        <p class="activity-note">* La carga equivalente es una aproximación técnica basada en solicitudes HTTP recientes; no representa un conteo exacto de personas.</p>
+        <p class="activity-note">* Equivalent load is a technical estimate based on recent HTTP requests; it does not represent an exact count of people.</p>
       </div>
     </div>
   </section>
@@ -957,27 +957,27 @@
   <section class="section" id="faq">
     <div class="section-grid">
       <div>
-        <div class="kicker">Preguntas frecuentes</div>
-        <h2>Su propósito y funcionamiento</h2>
+        <div class="kicker">Frequently asked questions</div>
+        <h2>Its purpose and operation</h2>
       </div>
       <div class="copy">
-        <p><strong style="color:var(--ink)">¿Qué inspiró la creación de Cuyum?</strong><br>
-        Cuyum nació para ayudar a comprender cómo se propagan las señales sísmicas a través del territorio. Integra programación, redes, datos abiertos y observación experimental en una herramienta educativa. No reemplaza a los organismos oficiales: permite estudiar de forma visible y accesible el comportamiento de una red sísmica.</p>
+        <p><strong style="color:var(--ink)">What inspired the creation of Cuyum?</strong><br>
+        Cuyum was created to help explain how seismic signals propagate across a territory. It brings together programming, networking, open data and experimental observation in an educational tool. It does not replace official agencies: it makes the behavior of a seismic network visible and accessible for study.</p>
 
-        <p><strong style="color:var(--ink)">¿Puedo usar Cuyum en un celular viejo?</strong><br>
-        Sí. Un celular, una tablet o una notebook antigua pueden permanecer conectados a la corriente con el monitor abierto en el navegador. No es necesario instalar una aplicación. El dispositivo solo necesita acceso continuo a Internet para actualizar los datos en tiempo real. También podrás unirte al canal de Telegram <span class="telegram-channel-name">@redcuyum</span> para recibir avisos experimentales en tiempo real.</p>
+        <p><strong style="color:var(--ink)">Can I use Cuyum on an old phone?</strong><br>
+        Yes. An old phone, tablet or laptop can remain connected to power with the monitor open in a browser. No application needs to be installed. The device only needs continuous Internet access to update the data in real time. You can also join the Telegram channel <span class="telegram-channel-name">@redcuyum</span> to receive experimental notices in real time.</p>
 
-        <p><strong style="color:var(--ink)">¿Por qué puede funcionar en cualquier parte del mundo?</strong><br>
-        Porque Cuyum no depende de una ubicación fija. El sistema adopta un centro geográfico y organiza las estaciones disponibles alrededor de ese punto. Al cambiar la configuración, puede adaptarse a otra ciudad o región, siempre que existan estaciones sísmicas abiertas y accesibles.</p>
+        <p><strong style="color:var(--ink)">Why can it work anywhere in the world?</strong><br>
+        Because Cuyum does not depend on a fixed location. The system adopts a geographic center and organizes the available stations around that point. By changing the configuration, it can adapt to another city or region, provided that open and accessible seismic stations are available.</p>
 
-        <p><strong style="color:var(--ink)">¿Cómo puedo implementarlo en mi comunidad?</strong><br>
-        Se necesita un servidor en la nube (VPS) con 2 GB de RAM, Ubuntu, Docker, opcionalmente un dominio propio y estaciones sísmicas abiertas en el territorio que desees supervisar. Podrás configurar las coordenadas de tu centro y validar eventos durante unos días. Tanto el monitor como la página se adaptan por completo a tu comunidad.</p>
+        <p><strong style="color:var(--ink)">How can I deploy it in my community?</strong><br>
+        You need a cloud server (VPS) with 2 GB of RAM, Ubuntu, Docker, optionally your own domain, and open seismic stations in the territory you want to monitor. You can configure the coordinates of your center and validate events for several days. Both the monitor and the website can be fully adapted to your community.</p>
 
-        <p><strong style="color:var(--ink)">¿Qué información puede mostrar Cuyum?</strong><br>
-        Cuyum muestra sensores disponibles, zonas de observación, señales detectadas y tiempos estimados de propagación hacia el centro configurado. También conserva registros experimentales de las multiseñales confirmadas por la red. Se encuentran a disposición el firmware y la documentación para crear tu propio observador Cuyum con ESP32 y recibir nuestros avisos experimentales las 24 horas.</p>
+        <p><strong style="color:var(--ink)">What information can Cuyum display?</strong><br>
+        Cuyum displays available sensors, observation zones, detected signals and estimated propagation times toward the configured center. It also preserves experimental records of multisignals confirmed by the network. The firmware and documentation are available so that you can build your own Cuyum observer with an ESP32 and receive experimental notices around the clock.</p>
 
-        <p><strong style="color:var(--ink)">¿Qué información no determina Cuyum?</strong><br>
-        Cuyum no calcula magnitudes, no determina epicentros y no reemplaza la información de los organismos oficiales. Sus registros son experimentales y deben compararse con las publicaciones de <span class="competent-authority-name">INPRES</span> y de otras instituciones sismológicas.</p>
+        <p><strong style="color:var(--ink)">What information does Cuyum not determine?</strong><br>
+        Cuyum does not calculate magnitudes, determine epicenters or replace information from official agencies. Its records are experimental and must be compared with the publications of <span class="competent-authority-name">INPRES</span> and other seismological institutions.</p>
       </div>
     </div>
   </section>
@@ -985,13 +985,13 @@
   <section class="section" id="Implementar">
     <div class="open-row">
       <div>
-        <strong><i>¿Te animás a replicar Cuyum para tu zona?</i></strong>
-        <p>Como proyecto abierto y experimental, el código está publicado bajo la licencia GNU GPL v3.0 o posterior. Esta iniciativa no reemplaza a <span class="competent-authority-name">INPRES</span> ni a otros organismos oficiales.</p>
-        <p>Desarrollado por <a href="https://www.linkedin.com/in/abelseru/" target="_blank" rel="noreferrer"><strong>Abel Serú</strong></a>, se utilizó ChatGPT de OpenAI, versión 5.5, consultado el mes de julio de 2026, como apoyo para ensayos, codificación y gestión de versiones. Contacto y más información: <a href="mailto:aseru@mendoza.edu.ar"><strong>aseru@mendoza.edu.ar</strong></a></p>
+        <strong><i>Would you like to replicate Cuyum for your area?</i></strong>
+        <p>As an open and experimental project, the code is published under the GNU GPL v3.0 or later. This initiative does not replace <span class="competent-authority-name">INPRES</span> or other official agencies.</p>
+        <p>Developed by <a href="https://www.linkedin.com/in/abelseru/" target="_blank" rel="noreferrer"><strong>Abel Serú</strong></a>, with OpenAI ChatGPT version 5.5, consulted in July 2026, used as support for testing, coding and version management. Contact and further information: <a href="mailto:aseru@mendoza.edu.ar"><strong>aseru@mendoza.edu.ar</strong></a></p>
       </div>
       <div class="actions">
-        <a class="btn" href="https://github.com/abelseru/cuyum" target="_blank" rel="noreferrer">Código fuente</a>
-        <a class="btn primary" href="/app">Abrir monitor </a>
+        <a class="btn" href="https://github.com/abelseru/cuyum" target="_blank" rel="noreferrer">Source code</a>
+        <a class="btn primary" href="/app">Open monitor </a>
       </div>
     </div>
   </section>
@@ -999,7 +999,7 @@
 
 <footer>
   <span>Cuyum 1.3</span>
-  <span>Observación sísmica educativa y experimental</span>
+  <span>Educational and experimental seismic observation</span>
 </footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1015,10 +1015,10 @@
     network:{state:'normal',active_sensors:12,active_cells:5},
     display_cells:[
       {cell_id:'cell_00',label:'Local',lat:-32.8895,lon:-68.8458,state:'normal'},
-      {cell_id:'auto_cell_01',label:'Oeste',lat:-33.26,lon:-71.14,state:'normal'},
-      {cell_id:'auto_cell_02',label:'Suroeste',lat:-33.88,lon:-70.95,state:'normal'},
-      {cell_id:'auto_cell_03',label:'Norte',lat:-28.84,lon:-70.27,state:'normal'},
-      {cell_id:'auto_cell_04',label:'Noroeste',lat:-31.62,lon:-70.99,state:'normal'}
+      {cell_id:'auto_cell_01',label:'West',lat:-33.26,lon:-71.14,state:'normal'},
+      {cell_id:'auto_cell_02',label:'Southwest',lat:-33.88,lon:-70.95,state:'normal'},
+      {cell_id:'auto_cell_03',label:'North',lat:-28.84,lon:-70.27,state:'normal'},
+      {cell_id:'auto_cell_04',label:'Northwest',lat:-31.62,lon:-70.99,state:'normal'}
     ],
     sensors:[
       {code:'C1.MT01.BHZ',name:'Mendoza Centro',lat:-32.8895,lon:-68.8458,cell_id:'cell_00',has_location:true,state:'normal'},
@@ -1027,10 +1027,10 @@
       {code:'C1.MT04.BHZ',name:'Luján de Cuyo',lat:-33.0391,lon:-68.8798,cell_id:'cell_00',has_location:true,state:'normal'},
       {code:'C1.MT05.BHZ',name:'Las Heras',lat:-32.8498,lon:-68.8235,cell_id:'cell_00',has_location:true,state:'normal'},
       {code:'C1.MT06.BHZ',name:'Maipú',lat:-32.9781,lon:-68.7847,cell_id:'cell_00',has_location:true,state:'normal'},
-      {code:'X1.WEST',name:'Célula oeste',lat:-33.26,lon:-71.14,cell_id:'auto_cell_01',has_location:true,state:'normal'},
-      {code:'X1.SOUTHWEST',name:'Célula suroeste',lat:-33.88,lon:-70.95,cell_id:'auto_cell_02',has_location:true,state:'normal'},
-      {code:'X1.NORTH',name:'Célula norte',lat:-28.84,lon:-70.27,cell_id:'auto_cell_03',has_location:true,state:'normal'},
-      {code:'X1.NORTHWEST',name:'Célula noroeste',lat:-31.62,lon:-70.99,cell_id:'auto_cell_04',has_location:true,state:'normal'}
+      {code:'X1.WEST',name:'West cell',lat:-33.26,lon:-71.14,cell_id:'auto_cell_01',has_location:true,state:'normal'},
+      {code:'X1.SOUTHWEST',name:'Southwest cell',lat:-33.88,lon:-70.95,cell_id:'auto_cell_02',has_location:true,state:'normal'},
+      {code:'X1.NORTH',name:'North cell',lat:-28.84,lon:-70.27,cell_id:'auto_cell_03',has_location:true,state:'normal'},
+      {code:'X1.NORTHWEST',name:'Northwest cell',lat:-31.62,lon:-70.99,cell_id:'auto_cell_04',has_location:true,state:'normal'}
     ]
   };
 
@@ -1233,12 +1233,12 @@
   }
 
   function formatRecordDate(value){
-    if(!value)return 'Fecha no disponible';
+    if(!value)return 'Date unavailable';
 
     const date=new Date(value);
     if(Number.isNaN(date.getTime()))return safeText(value);
 
-    return new Intl.DateTimeFormat('es-AR',{
+    return new Intl.DateTimeFormat('en-US',{
       day:'2-digit',
       month:'2-digit',
       year:'numeric',
@@ -1269,7 +1269,7 @@
     if(historyCenterText){
       const center=centerOf(data);
       historyCenterText.textContent=
-        `Multiseñales registradas en ${center.label}.`;
+        `Multisignals recorded at ${center.label}.`;
     }
 
     const members=Number(telegram.members);
@@ -1300,7 +1300,7 @@
     );
 
     if(authorityButton){
-      authorityButton.textContent=`Ver ${authorityName}`;
+      authorityButton.textContent=`View ${authorityName}`;
       authorityButton.href=authorityUrl;
     }
 
@@ -1318,11 +1318,11 @@
 
     if(historyTitle){
       if(recent.length===1){
-        historyTitle.textContent='Último registro';
+        historyTitle.textContent='Latest record';
       }else if(recent.length>1){
-        historyTitle.textContent=`Últimos ${recent.length} registros`;
+        historyTitle.textContent=`Latest ${recent.length} records`;
       }else{
-        historyTitle.textContent='Registros recientes';
+        historyTitle.textContent='Recent records';
       }
     }
 
@@ -1332,7 +1332,7 @@
       const empty=document.createElement('p');
       empty.className='history-empty';
       empty.textContent=
-        'Aún no hay multiseñales confirmadas registradas.';
+        'No confirmed multisignals have been recorded yet.';
       container.appendChild(empty);
       return;
     }
@@ -1351,7 +1351,7 @@
         record.direction_label||
         record.direction||
         record.cell_id,
-        'Dirección no disponible'
+        'Direction unavailable'
       );
 
       const warning=document.createElement('span');
@@ -1359,10 +1359,10 @@
 
       const seconds=Number(record.warning_seconds);
       warning.textContent=Number.isFinite(seconds)&&seconds>0
-        ?`${seconds.toLocaleString('es-AR',{
+        ?`${seconds.toLocaleString('en-US',{
             maximumFractionDigits:1
           })} s`
-        :'Sin datos';
+        :'No data';
 
       item.append(date,direction,warning);
       container.appendChild(item);
@@ -1396,7 +1396,7 @@
 
       coverageRadius.textContent=farthest===null
         ?'—'
-        :Math.ceil(farthest).toLocaleString('es-AR');
+        :Math.ceil(farthest).toLocaleString('en-US');
     }
 
     const localCell=cells.find(c=>c.cell_id==='cell_00')||center;
@@ -1449,7 +1449,7 @@
       const title=sensor.name||sensor.label||sensor.code||'Sensor';
       L.marker([sensor.lat,sensor.lon],{icon:sensorIcon(sensor)})
         .bindTooltip(
-          `<b>${title}</b><br>${local?'Sensor local':'Sensor externo'}`,
+          `<b>${title}</b><br>${local?'Local sensor':'External sensor'}`,
           {direction:'top',offset:[0,-7]}
         )
         .addTo(sensorsLayer);
@@ -1495,26 +1495,26 @@
 
     if(event){
       status.className='signal';
-      status.textContent='Señal en observación';
+      status.textContent='Signal under observation';
       mapStatus.className='chip signal';
-      mapStatus.innerHTML='Cuyum <b>observa una señal</b>';
+      mapStatus.innerHTML='Cuyum <b>is observing a signal</b>';
     }else if(configuredCells>0&&activeCells>=configuredCells){
       status.className='normal';
-      status.textContent='Red activa · estado normal';
+      status.textContent='Active network · normal status';
       mapStatus.className='chip';
-      mapStatus.innerHTML='Red <b>activa</b>';
+      mapStatus.innerHTML='Network <b>active</b>';
     }else if(activeCells>0){
       status.className='normal';
       status.textContent=
-        `Red parcial · ${activeCells} de ${configuredCells} celdas activas`;
+        `Partial network · ${activeCells} of ${configuredCells} active cells`;
       mapStatus.className='chip';
       mapStatus.innerHTML=
-        `Red <b>parcial · ${activeCells}/${configuredCells}</b>`;
+        `Network <b>partial · ${activeCells}/${configuredCells}</b>`;
     }else{
       status.className='normal';
-      status.textContent='Red iniciando · esperando celdas';
+      status.textContent='Network starting · waiting for cells';
       mapStatus.className='chip';
-      mapStatus.innerHTML='Red <b>iniciando</b>';
+      mapStatus.innerHTML='Network <b>starting</b>';
     }
 
     document.getElementById('centerText').textContent=center.label;
@@ -1533,7 +1533,7 @@
         );
 
     const mapSummaryText=
-      `${activeSensors} sensores activos · ${activeCells}/${configuredCells} celdas activas`;
+      `${activeSensors} active sensors · ${activeCells}/${configuredCells} active cells`;
 
     document.getElementById('mapSummary').textContent=mapSummaryText;
     document.getElementById('mapSummaryMobile').textContent=mapSummaryText;
@@ -1552,9 +1552,9 @@
     try{
       if(initialLoad){
         status.className='normal';
-        status.textContent='Conectando…';
-        summary.textContent='Leyendo el estado actual de Cuyum…';
-        summaryMobile.textContent='Leyendo el estado actual de Cuyum…';
+        status.textContent='Connecting…';
+        summary.textContent='Loading the current Cuyum status…';
+        summaryMobile.textContent='Loading the current Cuyum status…';
       }
 
       const response=await fetch(JSON_URL,{cache:'no-store'});
@@ -1577,9 +1577,9 @@
       status.className='alert';
 
       if(initialLoad){
-        status.textContent='No se pudo leer Cuyum';
-        summary.textContent='No se pudo abrir /json.';
-        summaryMobile.textContent='No se pudo abrir /json.';
+        status.textContent='Cuyum could not be reached';
+        summary.textContent='Could not open /json.';
+        summaryMobile.textContent='Could not open /json.';
       }
 
       console.error(error);

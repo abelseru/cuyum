@@ -1,6 +1,7 @@
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from pathlib import Path
+import os
 import json
 import mimetypes
 import time
@@ -20,6 +21,11 @@ APP_DIR = Path(__file__).resolve().parent
 BASE_DIR = APP_DIR.parent if APP_DIR.name == "app" else APP_DIR
 TEMPLATE_DIR = BASE_DIR / "templates"
 STATIC_DIR = BASE_DIR / "static"
+
+ENABLE_ENGLISH = (
+    os.environ.get("ENABLE_ENGLISH", "false").strip().lower()
+    == "true"
+)
 
 CACHE_SECONDS = 1.0
 CACHE = {}
@@ -192,13 +198,19 @@ class CuyumHandler(BaseHTTPRequestHandler):
         content_type = mimetypes.guess_type(str(file_path))[0] or "application/octet-stream"
         self.send_bytes(file_bytes(file_path), content_type=content_type)
 
-    def serve_live(self):
+    def serve_live(self, language):
+        preferred_template = (
+            "live_cuyum_en.html"
+            if language == "en"
+            else "live_cuyum.html"
+        )
+
         candidates = [
+            TEMPLATE_DIR / preferred_template,
             TEMPLATE_DIR / "live.html",
             TEMPLATE_DIR / "public_live.html",
             TEMPLATE_DIR / "index.html",
             TEMPLATE_DIR / "cuyum_live.html",
-            TEMPLATE_DIR / "live_cuyum.html",
             STATIC_DIR / "live.html",
             STATIC_DIR / "index.html",
             BASE_DIR / "live.html",
@@ -228,8 +240,13 @@ class CuyumHandler(BaseHTTPRequestHandler):
             status=404,
         )
 
-    def serve_web(self):
-        path = TEMPLATE_DIR / "web.html"
+    def serve_web(self, language):
+        template_name = (
+            "web_en.html"
+            if language == "en"
+            else "web.html"
+        )
+        path = TEMPLATE_DIR / template_name
 
         if path.exists():
             self.send_bytes(
@@ -250,6 +267,9 @@ class CuyumHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path
         query = parse_qs(parsed.query)
+        language = query.get("lang", [""])[0].strip().lower()
+        if language not in ("es", "en"):
+            language = "en" if ENABLE_ENGLISH else "es"
 
         try:
             if path == "/":
@@ -271,12 +291,12 @@ class CuyumHandler(BaseHTTPRequestHandler):
                 return
 
             if path in ("/app", "/app/"):
-                self.serve_live()
+                self.serve_live(language)
                 return
 
 
             if path in ("/web", "/web/"):
-                self.serve_web()
+                self.serve_web(language)
                 return
 
 

@@ -1114,3 +1114,534 @@ button.audio-button {
   font-size: 8px !important;
   padding: 2px 4px !important;
 }
+
+/* Controles agrupados en el encabezado del mapa */
+.brand-bar {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.map-head-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.map-head-actions .audio-button,
+.map-head-actions button.audio-button {
+  grid-column: auto !important;
+  justify-self: auto !important;
+  align-self: auto !important;
+  margin: 0 !important;
+}
+
+@media (max-width: 560px) {
+  .map-head {
+    flex-wrap: wrap;
+  }
+
+  .map-head-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* Ajuste final del botón de audio en el encabezado del mapa */
+.map-head-actions {
+  gap: 12px;
+}
+
+.map-head-actions .audio-button,
+.map-head-actions button.audio-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  min-width: 96px !important;
+  max-width: none !important;
+  padding-inline: 14px !important;
+}
+
+.audio-attention::after {
+  content: "ACTIVAR" !important;
+  top: -9px !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  font-size: 8px !important;
+  line-height: 1 !important;
+  padding: 2px 5px !important;
+  white-space: nowrap !important;
+}
+
+html[lang="en"] .audio-attention::after {
+  content: "ENABLE" !important;
+}
+
+/* SELECTOR COPIADO LITERALMENTE DESDE /web */
+/* Selector flotante del idioma alternativo */
+  .cuyum-language-control {
+    margin-top: 8px !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+.cuyum-language-switch {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 38px !important;
+    height: 38px !important;
+    border: 1px solid rgba(255,255,255,.35) !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+    text-decoration: none !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,.32) !important;
+  }
+
+.cuyum-language-switch.is-es {
+    background: linear-gradient(
+      180deg,
+      #74acdf 0 33%,
+      #ffffff 33% 66%,
+      #74acdf 66% 100%
+    ) !important;
+  }
+
+.cuyum-language-switch.is-en {
+    background: repeating-linear-gradient(
+      180deg,
+      #b22234 0 4px,
+      #ffffff 4px 8px
+    ) !important;
+  }
+
+.cuyum-language-bubble {
+    font-size: 24px;
+    line-height: 1;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.45));
+  }
+
+.cuyum-language-code {
+  position: absolute !important;
+
+  inset: auto !important;
+  left: 50% !important;
+  top: 45% !important;
+  transform: translate(-50%, -50%) !important;
+
+  min-width: 16px !important;
+  height: 10px !important;
+  padding: 0 2px !important;
+
+  border: 0 !important;
+  border-radius: 999px !important;
+
+  background: #ffffff !important;
+  color: #111111 !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: 7px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  letter-spacing: -0.02em !important;
+
+  text-shadow: none !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+  white-space: nowrap !important;
+}
+
+/* Fondo liso detrás de ES / EN para limpiar el emoji de diálogo */
+  .cuyum-language-code {
+    inset: auto !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+
+    min-width: 22px;
+    height: 15px;
+    padding: 0 3px;
+    border-radius: 4px;
+
+    background: #fff8e7;
+    color: #111111 !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    font-size: 10px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    letter-spacing: .02em !important;
+
+    text-shadow: none !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,.28);
+  }
+
+/* LANGUAGE SWITCH V2 START */
+.cuyum-language-switch {
+  position: absolute !important;
+  left: 10px !important;
+  top: 82px !important;
+  z-index: 800 !important;
+
+  width: 38px !important;
+  height: 38px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  border: 1px solid rgba(255,255,255,.45) !important;
+  border-radius: 11px !important;
+  overflow: hidden !important;
+
+  text-decoration: none !important;
+  cursor: pointer !important;
+
+  box-shadow:
+    0 5px 14px rgba(0,0,0,.42),
+    inset 0 1px 0 rgba(255,255,255,.25) !important;
+}
+
+/* Argentina: celeste, blanco y celeste */
+.cuyum-language-switch.is-es {
+  background:
+    linear-gradient(
+      180deg,
+      #74acdf 0 34%,
+      #ffffff 34% 66%,
+      #74acdf 66% 100%
+    ) !important;
+}
+
+/* Estados Unidos: composición limpia, sin franjas */
+.cuyum-language-switch.is-en {
+  background:
+    linear-gradient(
+      135deg,
+      #263f73 0 43%,
+      #ffffff 43% 57%,
+      #b22234 57% 100%
+    ) !important;
+}
+
+.cuyum-language-bubble {
+  font-size: 25px !important;
+  line-height: 1 !important;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.48)) !important;
+}
+
+.cuyum-language-code {
+  position: absolute !important;
+
+  inset: auto !important;
+  left: 50% !important;
+  top: 45% !important;
+  transform: translate(-50%, -50%) !important;
+
+  min-width: 17px !important;
+  width: 17px !important;
+  height: 10px !important;
+  padding: 0 2px !important;
+
+  border: 0 !important;
+  border-radius: 999px !important;
+
+  background: #fff6dc !important;
+  color: #151515 !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  font-size: 8px !important;
+  font-weight: 900 !important;
+  line-height: 10px !important;
+  letter-spacing: 0 !important;
+
+  text-shadow: none !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+}
+
+/*
+  El selector tiene z-index 800:
+  - supera map-fade, que usa 400;
+  - supera map-bottom-cover, que usa 650;
+  - permanece debajo del encabezado fijo, que usa 2000;
+  - al estar dentro del mapa, se desplaza junto con él.
+*/
+.cuyum-language-switch:hover {
+  transform: translateY(-1px) !important;
+}
+
+.cuyum-language-switch:active {
+  transform: translateY(1px) !important;
+}
+
+/* LANGUAGE SWITCH V2 END */
+
+/* Ajuste fino definitivo del código ES / EN dentro del globo */
+.cuyum-language-code{
+  position:absolute !important;
+  left:50% !important;
+  top:50% !important;
+  inset:auto !important;
+  transform:translate(-50%,-50%) !important;
+
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+
+  min-width:22px !important;
+  height:14px !important;
+  padding:0 4px !important;
+
+  background:#ffffff !important;
+  border:none !important;
+  border-radius:999px !important;
+  box-shadow:none !important;
+  text-shadow:none !important;
+
+  color:#111111 !important;
+  font-family:Arial, Helvetica, sans-serif !important;
+  font-size:9px !important;
+  font-weight:900 !important;
+  line-height:1 !important;
+  letter-spacing:-0.02em !important;
+  white-space:nowrap !important;
+
+  overflow:hidden !important;
+  pointer-events:none !important;
+}
+
+/* Microajuste final del selector de idioma */
+  .cuyum-language-code {
+    top: 43% !important;
+  }
+
+.cuyum-language-switch,
+  .cuyum-language-switch.is-en,
+  .cuyum-language-switch.is-es {
+    border-color: rgba(255,255,255,.55) !important;
+    outline: none !important;
+  }
+
+.cuyum-language-switch:focus,
+  .cuyum-language-switch:focus-visible {
+    outline: 2px solid #19bdf2 !important;
+    outline-offset: 2px !important;
+  }
+
+/* Corrección real del selector de idioma */
+  .cuyum-language-code {
+    top: 51% !important;
+  }
+
+.cuyum-language-switch,
+  .cuyum-language-switch.is-en,
+  .cuyum-language-switch.is-es {
+    border: 1px solid rgba(5, 8, 13, .72) !important;
+    outline: none !important;
+  }
+
+/* Ajuste visual definitivo */
+  .cuyum-language-code{top:47% !important;}
+
+.cuyum-language-switch,.cuyum-language-switch.is-en,.cuyum-language-switch.is-es{border:1px solid #aeb7c2 !important;outline:none !important;}
+
+/* Subida adicional de la etiqueta ES / EN */
+  .cuyum-language-code{top:44% !important;}
+
+/* POSICION Y BORDE DEFINITIVOS DEL SELECTOR */
+.cuyum-language-code {
+  top: 34% !important;
+}
+
+.cuyum-language-switch,
+.cuyum-language-switch.is-en,
+.cuyum-language-switch.is-es {
+  border: 0 !important;
+  outline: 0 !important;
+}
+
+/* Normalización exacta del selector únicamente en /app */
+.cuyum-language-switch {
+  box-sizing: border-box !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  line-height: 1 !important;
+  font-style: normal !important;
+  font-variant: normal !important;
+}
+
+.cuyum-language-bubble {
+  display: block !important;
+  width: 25px !important;
+  height: 25px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+
+  font-family:
+    "Noto Color Emoji",
+    "Segoe UI Emoji",
+    "Apple Color Emoji",
+    sans-serif !important;
+  font-variant-emoji: emoji;
+  font-size: 25px !important;
+  font-weight: 400 !important;
+  line-height: 25px !important;
+
+  text-align: center !important;
+  vertical-align: middle !important;
+  letter-spacing: 0 !important;
+  transform: none !important;
+}
+
+.cuyum-language-code {
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  vertical-align: middle !important;
+}
+
+/* /app: selector de idioma como control Leaflet real */
+.leaflet-control.cuyum-language-control {
+  margin-top: 8px !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  clear: both !important;
+}
+
+.leaflet-control.cuyum-language-control .cuyum-language-switch {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  z-index: auto !important;
+  margin: 0 !important;
+}
+
+.leaflet-control.cuyum-language-control .cuyum-language-switch:focus,
+.leaflet-control.cuyum-language-control .cuyum-language-switch:focus-visible {
+  outline: none !important;
+}
+
+/* /app: mover el emoji de diálogo 2 px a la izquierda */
+.cuyum-language-bubble {
+  transform: translateX(-2px) !important;
+}
+
+/* /app: acumulado total, emoji 4 px a la izquierda */
+.cuyum-language-bubble {
+  transform: translateX(-4px) !important;
+}
+
+/* /app: emoji 3 px a la izquierda */
+.cuyum-language-bubble {
+  transform: translateX(-3px) !important;
+}
+
+/* Etiqueta de prueba visible cuando el audio está habilitado */
+.audio-test {
+  position: relative !important;
+}
+
+.audio-test::after {
+  content: "PROBAR" !important;
+  position: absolute !important;
+  top: -9px !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+
+  padding: 2px 5px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+
+  background: #168ec8 !important;
+  color: #ffffff !important;
+
+  font-size: 8px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  letter-spacing: .03em !important;
+  white-space: nowrap !important;
+
+  box-shadow: 0 2px 6px rgba(0,0,0,.32) !important;
+  pointer-events: none !important;
+}
+
+html[lang="en"] .audio-test::after {
+  content: "TEST" !important;
+}
+
+/* Estado de prueba: reutiliza exactamente el letrero ACTIVAR / ENABLE */
+.audio-button.audio-attention.audio-test {
+  animation: none !important;
+}
+
+.audio-button.audio-attention.audio-test::after,
+button.audio-button.audio-attention.audio-test::after {
+  content: "PROBAR" !important;
+  background: #168ec8 !important;
+  color: #ffffff !important;
+}
+
+html[lang="en"] .audio-button.audio-attention.audio-test::after,
+html[lang="en"] button.audio-button.audio-attention.audio-test::after {
+  content: "TEST" !important;
+}
+
+/* PROBAR / TEST usa exactamente el letrero de ACTIVAR / ENABLE */
+.audio-button.audio-attention.audio-test::after,
+button.audio-button.audio-attention.audio-test::after {
+  content: "PROBAR" !important;
+  background: #168ec8 !important;
+  color: #ffffff !important;
+}
+
+html[lang="en"] .audio-button.audio-attention.audio-test::after,
+html[lang="en"] button.audio-button.audio-attention.audio-test::after {
+  content: "TEST" !important;
+}
+
+.audio-button.audio-attention.audio-test,
+button.audio-button.audio-attention.audio-test {
+  animation: none !important;
+}
+
+/* Un único letrero para ACTIVAR/ENABLE y PROBAR/TEST */
+.audio-button.audio-attention::after,
+button.audio-button.audio-attention::after {
+  content: attr(data-audio-label) !important;
+}
+
+.audio-button.audio-attention.audio-test::after,
+button.audio-button.audio-attention.audio-test::after {
+  background: #168ec8 !important;
+  color: #ffffff !important;
+}
+
+.audio-button.audio-attention.audio-test,
+button.audio-button.audio-attention.audio-test {
+  animation: none !important;
+}
+
+/* PROBAR / TEST debe conservar el mismo letrero de ACTIVAR / ENABLE */
+.audio-button.audio-enabled.audio-test::after,
+button.audio-button.audio-enabled.audio-test::after {
+  display: block !important;
+  content: attr(data-audio-label) !important;
+  background: #168ec8 !important;
+  color: #ffffff !important;
+}

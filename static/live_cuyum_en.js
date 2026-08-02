@@ -24,72 +24,74 @@
 function uiClassLabel(value) {
   const text = String(value || "").trim().toLowerCase();
   const map = {
-    "high": "alta",
-    "strong": "alta",
-    "good": "buena",
-    "minimal": "mínima",
-    "listening": "escucha",
-    "single station": "escucha",
-    "waiting": "en espera",
-    "no coverage": "sin cobertura",
-    "no recent data": "en espera",
-    "no_coverage": "sin cobertura",
-    "strong_cell": "alta",
-    "good_cell": "buena",
-    "minimal_cell": "mínima",
-    "single_station": "escucha",
-    "blind_zone": "sin cobertura",
-    "stale_cell": "en espera"
+    "high": "high",
+    "strong": "high",
+    "good": "good",
+    "minimal": "minimal",
+    "listening": "listening",
+    "single station": "listening",
+    "waiting": "waiting",
+    "no coverage": "no coverage",
+    "no recent data": "waiting",
+    "no_coverage": "no coverage",
+    "strong_cell": "high",
+    "good_cell": "good",
+    "minimal_cell": "minimal",
+    "single_station": "listening",
+    "blind_zone": "no coverage",
+    "stale_cell": "waiting"
   };
-  return map[text] || value || "en espera";
+  return map[text] || value || "waiting";
 }
 
 function uiNetworkLabel(value) {
   const text = String(value || "").trim().toLowerCase();
   const map = {
-    "high multicell network": "red multicelda alta",
-    "partial multicell network": "red multicelda parcial",
-    "active local network": "red local activa",
-    "degraded network": "red degradada",
-    "partial network": "red parcial"
+    "high multicell network": "high multicell network",
+    "partial multicell network": "partial multicell network",
+    "active local network": "active local network",
+    "degraded network": "degraded network",
+    "partial network": "partial network"
   };
-  return map[text] || value || "red Cuyum";
+  return map[text] || value || "Cuyum network";
 }
 
 function uiSensorState(value) {
   const text = String(value || "").trim().toLowerCase();
 
-  const map = {
-    "active": "activo",
-    "inactive": "inactivo",
-    "waiting": "en espera",
-    "listening": "en escucha",
-    "calibrating": "calibrando",
-    "high_latency": "latencia alta",
-    "high latency": "latencia alta",
-    "disconnected": "desconectado",
-    "candidate": "candidato",
-    "observed": "observado",
-    "reliable": "confiable"
+  const labels = {
+    "active": "active",
+    "inactive": "inactive",
+    "waiting": "waiting",
+    "listening": "listening",
+    "calibrating": "calibrating",
+    "high_latency": "high latency",
+    "high latency": "high latency",
+    "disconnected": "disconnected",
+    "candidate": "candidate",
+    "observed": "observed",
+    "reliable": "reliable"
   };
 
-  return map[text] || value || "activo";
+  return labels[text] || value || "active";
 }
 
 function uiDirectionLabel(value) {
   const text = String(value || "").trim().toLowerCase();
-  const map = {
-    "north": "NORTE",
-    "northeast": "NORESTE",
-    "east": "ESTE",
-    "southeast": "SURESTE",
-    "south": "SUR",
-    "southwest": "SUROESTE",
-    "west": "OESTE",
-    "northwest": "NOROESTE",
+
+  const labels = {
+    "north": "NORTH",
+    "northeast": "NORTHEAST",
+    "east": "EAST",
+    "southeast": "SOUTHEAST",
+    "south": "SOUTH",
+    "southwest": "SOUTHWEST",
+    "west": "WEST",
+    "northwest": "NORTHWEST",
     "local": "Local"
   };
-  return map[text] || value || "Zona";
+
+  return labels[text] || value || "Zone";
 }
 
 function escapeHtml(value) {
@@ -110,8 +112,8 @@ function escapeHtml(value) {
   }
 
   function cellHumanLabel(cell) {
-    if (!cell) return 'Red';
-    const raw = cell.label || cell.short_label || cell.direction_label || 'Zona';
+    if (!cell) return 'Network';
+    const raw = cell.label || cell.short_label || cell.direction_label || 'Zone';
     return uiDirectionLabel(raw);
   }
 
@@ -145,38 +147,78 @@ function escapeHtml(value) {
 
     if (isSound || text.includes('anticip') || text.includes('signal')) {
       const seconds = warningSecondsFrom(data, cell);
-      return { mode: 'alert', word: 'Atención', hint: `${cellHumanLabel(cell)}${seconds ? ` · ${seconds} s estimados` : ''}` };
+      return { mode: 'alert', word: 'Attention', hint: `${cellHumanLabel(cell)}${seconds ? ` · ${seconds} s estimated` : ''}` };
     }
     if (text.includes('confirm') || text.includes('possible movement')) {
-      return { mode: 'watch', word: 'Movimiento posible', hint: `${cellHumanLabel(cell)} · datos coincidentes` };
+      return { mode: 'watch', word: 'Possible movement', hint: `${cellHumanLabel(cell)} · matching data` };
     }
     if (text.includes('observ') || text.includes('senal') || text.includes('signal')) {
-      return { mode: 'watch', word: 'Señal detectada', hint: `${cellHumanLabel(cell)} · en observación` };
+      return { mode: 'watch', word: 'Signal detected', hint: `${cellHumanLabel(cell)} · under observation` };
     }
-    if (text.includes('sin datos') || text.includes('degradada') || text.includes('blind')) {
-      return { mode: 'offline', word: 'Sin datos', hint: 'esperando lectura de Cuyum' };
+    if (text.includes('no data') || text.includes('degraded') || text.includes('blind')) {
+      return { mode: 'offline', word: 'No data', hint: 'waiting for Cuyum data' };
     }
-    return { mode: 'normal', word: 'Operativo', hint: 'sin señales relevantes' };
+    return { mode: 'normal', word: 'Operational', hint: 'no relevant signals' };
   }
 
   function normalizeClassLabel(value) {
-    const v = String(value || '').toLowerCase().trim();
-    if (v === 'fuerte' || v === 'alta' || v === 'strong_cell') return 'alta';
-    if (v === 'buena' || v === 'media' || v === 'good_cell') return 'buena';
-    if (v === 'mínima' || v === 'minima' || v === 'básica' || v === 'basica' || v === 'minimal_cell') return 'mínima';
-    if (v === 'escucha' || v === 'regular' || v === 'single_station') return 'regular';
-    if (!v || v.includes('espera') || v.includes('cobertura') || v.includes('datos') || v.includes('blind') || v.includes('stale')) return 'en espera';
-    return v;
+  const text = String(value || "").trim().toLowerCase();
+
+  if (
+    text === "strong" ||
+    text === "strong_cell" ||
+    text === "high"
+  ) {
+    return "high";
   }
 
-  function qualityWidth(label) {
-    const v = normalizeClassLabel(label);
-    if (v === 'alta') return 100;
-    if (v === 'buena') return 75;
-    if (v === 'mínima') return 45;
-    if (v === 'regular') return 28;
-    return 10;
+  if (
+    text === "good" ||
+    text === "good_cell" ||
+    text === "medium"
+  ) {
+    return "good";
   }
+
+  if (
+    text === "minimal" ||
+    text === "minimal_cell"
+  ) {
+    return "minimal";
+  }
+
+  if (
+    text === "listening" ||
+    text === "single_station" ||
+    text === "regular"
+  ) {
+    return "regular";
+  }
+
+  if (
+    !text ||
+    text.includes("waiting") ||
+    text.includes("coverage") ||
+    text.includes("data") ||
+    text.includes("blind") ||
+    text.includes("stale")
+  ) {
+    return "waiting";
+  }
+
+  return text;
+}
+
+  function qualityWidth(label) {
+  const value = normalizeClassLabel(label);
+
+  if (value === "high") return 100;
+  if (value === "good") return 75;
+  if (value === "minimal") return 45;
+  if (value === "regular") return 28;
+
+  return 10;
+}
 
   
   const CELL_COLOR_BY_ID = {
@@ -357,7 +399,7 @@ function displayCellId(cell, i) {
     const button = $("competentAuthorityButton");
 
     if (button) {
-      button.textContent = `🏛️ Ver ${name}`;
+      button.textContent = `🏛️ View ${name}`;
       button.href = recordsUrl;
     }
   }
@@ -366,7 +408,7 @@ function displayCellId(cell, i) {
     const box = $('cellsList');
     box.innerHTML = '';
     if (!cells || cells.length === 0) {
-      box.innerHTML = '<div class="zone-row"><div class="zone-name-wrap"><span></span><b class="zone-name">Inicializando</b></div><span class="zone-level">--</span><span class="zone-sensors">--</span></div>';
+      box.innerHTML = '<div class="zone-row"><div class="zone-name-wrap"><span></span><b class="zone-name">Initializing</b></div><span class="zone-level">--</span><span class="zone-sensors">--</span></div>';
       return;
     }
     cells.slice(0, 6).forEach((cell, index) => {
@@ -380,7 +422,7 @@ function displayCellId(cell, i) {
       row.innerHTML = `
         <div class="zone-name-wrap">
           <span class="zone-dot" aria-hidden="true"></span>
-          <b class="zone-name">${escapeHtml(uiDirectionLabel(cell.label || cell.short_label || cell.direction_label || 'Zona'))}</b>
+          <b class="zone-name">${escapeHtml(uiDirectionLabel(cell.label || cell.short_label || cell.direction_label || 'Zone'))}</b>
         </div>
         <span class="zone-level">${escapeHtml(label)}</span>
         <span class="zone-sensors">${escapeHtml(sensorCountLabel(cell))}</span>
@@ -513,22 +555,37 @@ function displayCellId(cell, i) {
 
 
   function sensorQualityLabel(sensor) {
-    const q = Number(sensor.score_selection);
-    if (Number.isFinite(q)) {
-      if (q >= 0.86) return 'alta';
-      if (q >= 0.72) return 'buena';
-      if (q >= 0.50) return 'regular';
-      return 'en revisión';
-    }
-    if (sensor.calibrated === false) return 'en revisión';
-    return 'operativa';
+  const score = Number(sensor.score_selection);
+
+  if (Number.isFinite(score)) {
+    if (score >= 0.86) return "high";
+    if (score >= 0.72) return "good";
+    if (score >= 0.50) return "regular";
+    return "under review";
   }
 
-  function sensorLocationLabel(sensor) {
-    const src = String(sensor.location_source || '').toLowerCase();
-    if (sensor.approx_location || src.includes('aproximada') || src.includes('override')) return 'ubicación pública aproximada';
-    return 'ubicación de inventario';
+  if (sensor.calibrated === false) {
+    return "under review";
   }
+
+  return "operational";
+}
+
+  function sensorLocationLabel(sensor) {
+  const source = String(
+    sensor.location_source || ""
+  ).toLowerCase();
+
+  if (
+    sensor.approx_location ||
+    source.includes("approximate") ||
+    source.includes("override")
+  ) {
+    return "approximate public location";
+  }
+
+  return "inventory location";
+}
 
   function sensorPopup(sensor) {
     const title =
@@ -537,13 +594,13 @@ function displayCellId(cell, i) {
       sensor.sensor_id ||
       'Sensor';
     const code = sensor.sensor_id || '';
-    const zona = isRegionalObserver(sensor) ? 'Observadores' : (sensor.cell_label || sensor.cell_id || 'Zona');
-    const estado = uiSensorState(sensor.state);
-    const calidad = sensorQualityLabel(sensor);
-    const ubicacion = sensorLocationLabel(sensor);
-    const latencia = Number(sensor.latency_seconds);
-    const latText = Number.isFinite(latencia) ? `<br>Latencia: ${latencia.toFixed(1)} s` : '';
-    return `<b>${escapeHtml(title)}</b><br>${escapeHtml(code)}<br>Zona: ${escapeHtml(zona)}<br>Estado: ${escapeHtml(estado)}<br>Calidad: ${escapeHtml(calidad)}<br>${escapeHtml(ubicacion)}${latText}`;
+    const zone = isRegionalObserver(sensor) ? 'Observers' : (sensor.cell_label || sensor.cell_id || 'Zone');
+    const state = uiSensorState(sensor.state);
+    const quality = sensorQualityLabel(sensor);
+    const location = sensorLocationLabel(sensor);
+    const latency = Number(sensor.latency_seconds);
+    const latencyText = Number.isFinite(latency) ? `<br>Latency: ${latency.toFixed(1)} s` : '';
+    return `<b>${escapeHtml(title)}</b><br>${escapeHtml(code)}<br>Zone: ${escapeHtml(zone)}<br>Status: ${escapeHtml(state)}<br>Quality: ${escapeHtml(quality)}<br>${escapeHtml(location)}${latencyText}`;
   }
 
   function buildBounds(points) {
@@ -575,7 +632,7 @@ function displayCellId(cell, i) {
   function renderMap(data) {
     initMap();
     if (!map) {
-      $('mapSummary').textContent = 'Mapa no disponible';
+      $('mapSummary').textContent = 'Map unavailable';
       return;
     }
     sensorLayer.clearLayers();
@@ -804,7 +861,7 @@ function displayCellId(cell, i) {
 
     if (!audioEnabled) return;
 
-    // El patrón ya fue reproducido durante este episodio.
+    // The pattern has already been played during this episode.
     if (lastAlertBeep !== 0) return;
 
     lastAlertBeep = Date.now();
@@ -859,9 +916,9 @@ function displayCellId(cell, i) {
       audioButton.classList.remove('audio-attention');
       audioButton.classList.add('audio-test');
       $('audioButton').classList.add('active');
-      $('audioButton').textContent = 'Audio activo';
+      $('audioButton').textContent = 'Audio enabled';
     } catch (e) {
-      $('audioButton').textContent = 'Audio no disponible';
+      $('audioButton').textContent = 'Audio unavailable';
     }
   });
 
@@ -938,32 +995,32 @@ function displayCellId(cell, i) {
     const targetCellId = targetCell ? targetCell.cell_id : null;
 
     copy.display.status = "observacion";
-    copy.display.message = "Simulación";
+    copy.display.message = "Simulation";
     copy.display.sound = true;
 
     copy.alert.active = true;
     copy.alert.level = "simulation";
-    copy.alert.message = "Simulación";
+    copy.alert.message = "Simulation";
     copy.alert.sound = true;
     copy.alert.buzzer_seconds = 9999;
 
     copy.simulation = {
       active: true,
-      label: "Simulación",
+      label: "Simulation",
       duration_seconds: 9999,
       target_cell_id: targetCellId
     };
 
     for (const cell of copy.cells) {
       if (!targetCellId || cell.cell_id === targetCellId) {
-        cell.state_label = "Simulación";
+        cell.state_label = "Simulation";
         cell.warning_seconds = 9999;
       }
     }
 
     for (const cell of copy.display_cells) {
       if (!targetCellId || cell.cell_id === targetCellId) {
-        cell.state_label = "Simulación";
+        cell.state_label = "Simulation";
         cell.warning_seconds = 9999;
       }
     }
@@ -971,7 +1028,7 @@ function displayCellId(cell, i) {
     for (const sensor of copy.sensors) {
       if (!targetCellId || sensor.cell_id === targetCellId) {
         sensor.flag = true;
-        sensor.state = "activo";
+        sensor.state = "active";
         sensor.calibrated = true;
         sensor.ratio = Math.max(Number(sensor.ratio || 0), 9.99);
         sensor.simulation = true;
@@ -990,7 +1047,7 @@ function displayCellId(cell, i) {
     button.id = "simulationButton";
     button.className = "simulation-button simulation-bottom-button";
     button.type = "button";
-    button.innerHTML = "<span aria-hidden=\"true\">🔊</span> Probar simulación";
+    button.innerHTML = "<span aria-hidden=\"true\">🔊</span> Test simulation";
     button.addEventListener("click", startSimulation);
 
     const bottomBar =
@@ -1001,7 +1058,7 @@ function displayCellId(cell, i) {
       Array.from(document.querySelectorAll("div, footer, nav"))
         .find(el => {
           const t = (el.textContent || "").toLowerCase();
-          return t.includes("estado actual") && t.includes("registros recientes");
+          return t.includes("current status") && t.includes("recent records");
         });
 
     if (bottomBar) {
@@ -1069,13 +1126,13 @@ function displayCellId(cell, i) {
       Array.from(document.querySelectorAll("button, a"))
         .find(el => {
           const t = (el.textContent || "").trim().toLowerCase();
-          return t.includes("activar audio") || t.includes("audio");
+          return t.includes("enable audio") || t.includes("audio");
         });
 
     if (!audioButton) return;
 
     audioButton.classList.add("audio-attention");
-    audioButton.dataset.audioLabel = "ACTIVAR";
+    audioButton.dataset.audioLabel = "ENABLE";
 
     audioButton.addEventListener("click", () => {
       /*
@@ -1086,7 +1143,7 @@ function displayCellId(cell, i) {
       audioButton.classList.add("audio-attention");
       audioButton.classList.add("audio-enabled");
       audioButton.classList.add("audio-test");
-      audioButton.dataset.audioLabel = "PROBAR";
+      audioButton.dataset.audioLabel = "TEST";
     });
   }
 
