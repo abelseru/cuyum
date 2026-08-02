@@ -1645,3 +1645,13 @@ button.audio-button.audio-enabled.audio-test::after {
   background: #168ec8 !important;
   color: #ffffff !important;
 }
+
+
+/* Selector de idioma sin bandera: conservar íntegros emoji y etiqueta */
+.cuyum-language-switch,
+.cuyum-language-switch.is-es,
+.cuyum-language-switch.is-en {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}

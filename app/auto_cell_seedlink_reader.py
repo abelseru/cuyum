@@ -12,6 +12,10 @@ BASELINE_PACKETS = 5
 FLAG_FACTOR = 2.5
 STRONG_FLAG_FACTOR = 4.0
 EVENT_WINDOW_SECONDS = 10
+
+# Evita que una elevación individual sostenida mantenga
+# indefinidamente una celda en observación.
+PERSISTENT_SIGNAL_SECONDS = 120
 MAX_LATENCY_SECONDS = 20
 PREVIOUS_BASELINE_WEIGHT = 0.97
 NEW_ENERGY_WEIGHT = 0.03
@@ -112,6 +116,10 @@ class AutoCellReader(EasySeedLinkClient):
         self.base = {}
         self.sensor_states = {}
         self.recent_flags = {}
+
+        # Momento en que cada sensor comenzó una elevación continua.
+        self.raw_flag_started_at = {}
+
         self.sensor_map = {sensor_config_key(s): s for s in sensors}
 
     def on_data(self, trace):
@@ -148,11 +156,38 @@ class AutoCellReader(EasySeedLinkClient):
 
         sensor_baseline = self.base[key]
         ratio = energy / sensor_baseline if sensor_baseline > 0 else 0
-        flag = ratio >= FLAG_FACTOR
-        strong_flag = ratio >= STRONG_FLAG_FACTOR
 
-        if not flag:
-            self.base[key] = self.base[key] * PREVIOUS_BASELINE_WEIGHT + energy * NEW_ENERGY_WEIGHT
+        raw_flag = ratio >= FLAG_FACTOR
+        raw_strong_flag = ratio >= STRONG_FLAG_FACTOR
+        now_ts = float(now.timestamp)
+
+        if raw_flag:
+            self.raw_flag_started_at.setdefault(key, now_ts)
+        else:
+            self.raw_flag_started_at.pop(key, None)
+
+        raw_flag_age = (
+            now_ts - self.raw_flag_started_at[key]
+            if key in self.raw_flag_started_at
+            else 0.0
+        )
+
+        persistent_signal = (
+            raw_flag
+            and raw_flag_age >= PERSISTENT_SIGNAL_SECONDS
+        )
+
+        flag = raw_flag and not persistent_signal
+        strong_flag = raw_strong_flag and not persistent_signal
+
+        if not raw_flag or persistent_signal:
+            self.base[key] = (
+                self.base[key] * PREVIOUS_BASELINE_WEIGHT
+                + energy * NEW_ENERGY_WEIGHT
+            )
+
+        if persistent_signal:
+            self.recent_flags.pop(cfg['station'], None)
 
         if flag:
             self.recent_flags[cfg['station']] = {

@@ -7,6 +7,10 @@
   let sensorLayer = null;
   let zoneLayer = null;
   let connectionLayer = null;
+
+  // Conserva los marcadores entre actualizaciones para que
+  // un popup abierto no desaparezca cada 1,5 o 5 segundos.
+  const sensorMarkers = new Map();
   let timer = null;
   let audioEnabled = false;
   let audioCtx = null;
@@ -635,7 +639,10 @@ function displayCellId(cell, i) {
       $('mapSummary').textContent = 'Map unavailable';
       return;
     }
-    sensorLayer.clearLayers();
+    /*
+      Los sensores no se borran aquí. Sus marcadores se actualizan
+      individualmente para conservar cualquier popup abierto.
+    */
     zoneLayer.clearLayers();
     connectionLayer.clearLayers();
 
@@ -694,10 +701,45 @@ function displayCellId(cell, i) {
       }
     });
 
-    sensors.forEach(sensor => {
-      L.circleMarker([sensor.lat, sensor.lon], sensorStyle(sensor, cells))
-        .bindPopup(sensorPopup(sensor))
-        .addTo(sensorLayer);
+    const currentSensorIds = new Set();
+
+    sensors.forEach((sensor, index) => {
+      const sensorId = String(
+        sensor.sensor_id ||
+        sensor.id ||
+        sensor.code ||
+        `${sensorCellId(sensor)}:${sensor.lat}:${sensor.lon}:${index}`
+      );
+
+      currentSensorIds.add(sensorId);
+
+      let marker = sensorMarkers.get(sensorId);
+
+      if (!marker) {
+        marker = L.circleMarker(
+          [sensor.lat, sensor.lon],
+          sensorStyle(sensor, cells)
+        )
+          .bindPopup(sensorPopup(sensor))
+          .addTo(sensorLayer);
+
+        sensorMarkers.set(sensorId, marker);
+      } else {
+        marker.setLatLng([sensor.lat, sensor.lon]);
+        marker.setStyle(sensorStyle(sensor, cells));
+        marker.setPopupContent(sensorPopup(sensor));
+      }
+    });
+
+    /*
+      Retira únicamente sensores que ya no existen en la respuesta.
+      Los marcadores restantes conservan su popup y estado de apertura.
+    */
+    sensorMarkers.forEach((marker, sensorId) => {
+      if (currentSensorIds.has(sensorId)) return;
+
+      sensorLayer.removeLayer(marker);
+      sensorMarkers.delete(sensorId);
     });
 
     const bounds = buildBounds(allPoints);
