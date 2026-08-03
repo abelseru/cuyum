@@ -196,12 +196,44 @@ def clean_event(event):
     if approx_location is not None:
         out["approx_location"] = bool(approx_location)
 
-    if event.get("type") == "system_decision" and not sensor_id:
+    if event.get("type") in {"system_decision", "sound_alert"} and not sensor_id:
         out["scope"] = "network"
 
+    system = event.get("system") or {}
+
+    if event.get("type") == "sound_alert":
+        out["event_level"] = system.get("event_level")
+        out["cells_active"] = system.get("cells_active")
+        out["sensors_active"] = system.get("sensors_active")
+        out["buzzer_seconds"] = system.get(
+            "buzzer_seconds",
+            out.get("buzzer_seconds", 0),
+        )
+
+    multisignal = event.get("multisignal") or {}
+
+    if event.get("type") == "multisignal":
+        for key in (
+            "record_id",
+            "direction",
+            "direction_label",
+            "warning_seconds",
+        ):
+            value = multisignal.get(key)
+
+            if value is not None:
+                out[key] = value
+
+    signal = event.get("signal") or {}
+
     for key in ("ratio_max", "companions", "judgement"):
-        if event.get(key) is not None:
-            out[key] = event.get(key)
+        value = event.get(key)
+
+        if value is None:
+            value = signal.get(key)
+
+        if value is not None:
+            out[key] = value
 
     return out
 
@@ -219,8 +251,18 @@ def build_events_v1(raw):
         "version": "v1",
         "experimental": True,
         "updated_at": raw.get("updated_at") if isinstance(raw, dict) else None,
+        "timezone": "UTC",
+        "timestamps_format": "ISO 8601",
+        "comparison_policy": "manual_external",
         "retention_days": raw.get("retention_days") if isinstance(raw, dict) else None,
         "count": len(clean_events),
-        "description": "Recent public event records.",
+        "description": "Recent public observations and events generated automatically by Cuyum.",
+        "notice": (
+            "All timestamps in this record are expressed in UTC. "
+            "Observations are generated automatically by Cuyum and do not "
+            "constitute official seismic confirmation. Any comparison with "
+            "competent authority records must be performed externally and "
+            "under the responsibility of the person conducting it."
+        ),
         "events": clean_events,
     }

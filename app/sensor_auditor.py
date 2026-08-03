@@ -209,32 +209,84 @@ def update_latency(entry, latency):
 
 
 def judge_flags(zone, catalog, cell_id):
+    """
+    Record one public event per sensor flag episode.
+
+    A continuing flag is not written repeatedly. A new event is written only
+    when the sensor first enters the active flag set or when the same episode
+    escalates to a stronger judgement level.
+    """
     flags = zone.get("recent_flags", {}) or {}
     active_flags = list(flags.values())
     total_flags = len(active_flags)
 
+    active_sensor_ids = {
+        flag.get("sensor_id")
+        for flag in active_flags
+        if flag.get("sensor_id")
+    }
+
+    # Rearm sensors whose previous flag episode has ended.
+    for sensor_id, entry in catalog["sensors"].items():
+        if sensor_id not in active_sensor_ids:
+            entry["active_flag_episode"] = False
+            entry["active_flag_judgement"] = None
+            entry["last_flag_event_key"] = None
+
+    judgement_rank = {
+        "solo": 1,
+        "with_peer": 2,
+        "confirmed_by_cell": 3,
+    }
+
     for flag in active_flags:
         key = flag.get("sensor_id")
+
         if not key or key not in catalog["sensors"]:
-            continue
-        event_key = f"{key}|{flag.get('timestamp')}|{flag.get('updated_at')}"
-        entry = catalog["sensors"][key]
-        if entry.get("last_flag_event_key") == event_key:
             continue
 
         companions = max(0, total_flags - 1)
-        entry["flags_total"] = entry.get("flags_total", 0) + 1
+
         if companions >= 2:
             judgement = "confirmed_by_cell"
-            entry["flags_confirmed_by_cell"] = entry.get("flags_confirmed_by_cell", 0) + 1
         elif companions == 1:
             judgement = "with_peer"
-            entry["flags_with_peer"] = entry.get("flags_with_peer", 0) + 1
         else:
             judgement = "solo"
+
+        entry = catalog["sensors"][key]
+        previous_judgement = entry.get("active_flag_judgement")
+        episode_active = bool(entry.get("active_flag_episode", False))
+
+        is_new_episode = not episode_active
+        is_escalation = (
+            episode_active
+            and judgement_rank.get(judgement, 0)
+            > judgement_rank.get(previous_judgement, 0)
+        )
+
+        if not is_new_episode and not is_escalation:
+            continue
+
+        entry["active_flag_episode"] = True
+        entry["active_flag_judgement"] = judgement
+        entry["last_flag_event_key"] = (
+            f"{key}|{flag.get('timestamp')}|{judgement}"
+        )
+
+        entry["flags_total"] = entry.get("flags_total", 0) + 1
+
+        if judgement == "confirmed_by_cell":
+            entry["flags_confirmed_by_cell"] = (
+                entry.get("flags_confirmed_by_cell", 0) + 1
+            )
+        elif judgement == "with_peer":
+            entry["flags_with_peer"] = (
+                entry.get("flags_with_peer", 0) + 1
+            )
+        else:
             entry["flags_solo"] = entry.get("flags_solo", 0) + 1
 
-        entry["last_flag_event_key"] = event_key
         event_item = {
             "type": "sensor_flag_judgement",
             "cell_id": cell_id,
@@ -243,9 +295,11 @@ def judge_flags(zone, catalog, cell_id):
             "ratio": flag.get("ratio"),
             "magnitude_experimental": flag.get("estimated_magnitude"),
             "companions": companions,
-            "judgement": judgement
+            "judgement": judgement,
         }
+
         append_jsonl(AUDIT_FILE, event_item)
+
         event_journal.record_sensor_judgement(
             cell_id=cell_id,
             sensor_id=key,

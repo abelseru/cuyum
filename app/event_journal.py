@@ -5,6 +5,7 @@ from datetime import datetime, timezone, timedelta
 CONFIG_FILE = "config_cuyum.json"
 EVENTS_FILE = "runtime/events_recent.jsonl"
 AUDIT_FILE = "runtime/audit_recent.jsonl"
+MULTISIGNALS_FILE = "persistent/confirmed_multisignals.json"
 STATE_FILE = "runtime/event_journal_state.json"
 SENSOR_GEO_OVERRIDES_FILE = "config/sensor_geo_overrides.json"
 LOCAL_STATE_FILE = "runtime/state_cell_00_seedlink.json"
@@ -503,23 +504,20 @@ def _audit_to_public(item):
     companions = int(item.get("companions") or 0)
     judgement = item.get("judgement")
 
-    # Filtro de importancia:
-    # - cell coincidence: always relevant;
-    # - shared signal: relevant only above a moderate threshold;
-    # - isolated signal: relevant only when clearly strong.
+    # Public record policy:
+    # - cell coincidences are recorded;
+    # - shared signals are recorded;
+    # - every isolated signal that reached Cuyum's internal flag judgement
+    #   is recorded, regardless of its ratio.
     if judgement == "confirmed_by_cell" or companions >= 2:
         level = "watch"
         summary = "coincident signal within one cell"
     elif judgement == "with_peer" or companions == 1:
-        if ratio < 3.0:
-            return None
         level = "shared_signal"
         summary = "shared signal from nearby sensors"
     else:
-        if ratio < 6.0:
-            return None
         level = "isolated_signal"
-        summary = "intense isolated signal"
+        summary = "isolated signal without confirmation"
 
     return {
         "type": "sensor_signal",
@@ -545,10 +543,30 @@ def _compact_event(item):
     cell_id = item.get("cell_id")
     cell_label = item.get("cell_label") or _safe_cell_label(cell_id)
 
+    event_type = item.get("type")
+    event_level = item.get("public_level") or item.get("event_level") or "event"
+
+    # Public /reg categories:
+    # isolated_signal, shared_signal, multisignal, sound_alert.
+    if event_type == "system_decision" and bool(item.get("sound", False)):
+        event_type = "sound_alert"
+        event_level = "sound_alert"
+
+    if event_type == "sensor_signal":
+        if (
+            event_level == "watch"
+            or int(item.get("companions") or 0) >= 1
+        ):
+            event_level = "shared_signal"
+        else:
+            event_level = "isolated_signal"
+
+        event_type = event_level
+
     out = {
         "timestamp": item.get("timestamp"),
-        "type": item.get("type"),
-        "level": item.get("public_level") or item.get("event_level") or "event",
+        "type": event_type,
+        "level": event_level,
         "summary": item.get("summary") or item.get("message") or "Cuyum event",
         "sound": bool(item.get("sound", False)),
     }
@@ -598,40 +616,104 @@ def _compact_event(item):
             "sensors_active": item.get("sensors_active"),
             "buzzer_seconds": item.get("buzzer_seconds", 0),
         }
-        out["system"] = {k: v for k, v in out["system"].items() if v is not None}
+        out["system"] = {
+            key: value
+            for key, value in out["system"].items()
+            if value is not None
+        }
+
+    if item.get("type") == "multisignal":
+        out["multisignal"] = {
+            "record_id": item.get("record_id"),
+            "direction": item.get("direction"),
+            "direction_label": item.get("direction_label"),
+            "warning_seconds": item.get("warning_seconds"),
+        }
+        out["multisignal"] = {
+            key: value
+            for key, value in out["multisignal"].items()
+            if value is not None and value != ""
+        }
 
     return out
 
 
 def _is_publicly_relevant(item):
-    t = item.get("type")
-    if t == "sensor_signal":
+    """
+    Public /reg policy.
+
+    Publish only:
+    - isolated sensor signals;
+    - shared or coincident sensor signals;
+    - system decisions that actually activated sound.
+
+    Persistent multisignals are added separately from
+    persistent/confirmed_multisignals.json.
+    """
+    event_type = item.get("type")
+
+    if event_type == "sensor_signal":
         level = item.get("public_level")
-        ratio = _as_float(item.get("ratio_max"), None)
         companions = int(item.get("companions") or 0)
-        if level == "watch" or companions >= 2:
-            return True
-        if level == "shared_signal" and (ratio is None or ratio >= 3.0):
-            return True
-        if level == "isolated_signal" and ratio is not None and ratio >= 6.0:
-            return True
-        return False
-    if t == "system_decision":
-        return True
-    if t == "sensor_availability":
-        return True
-    # Network/cell snapshots, calibration, and latency are live state or internal audit.
+
+        return (
+            level in {"isolated_signal", "shared_signal", "watch"}
+            or companions >= 1
+        )
+
+    if event_type == "system_decision":
+        return bool(item.get("sound", False))
+
     return False
 
 
-def build_public_events(limit=100, include_audit=True):
+def build_public_events(limit=100, include_audit=False):
+    """
+    Build the public /reg payload from the public event journal only.
+
+    audit_recent.jsonl remains an internal diagnostic source and is not mixed
+    into /reg because its periodic revisions are not distinct public episodes.
+    """
     trim_jsonl(EVENTS_FILE)
     limit = max(1, min(int(limit or 100), 300))
 
-    events = [x for x in _iter_jsonl(EVENTS_FILE, limit=limit * 4) if _is_publicly_relevant(x)]
+    events = [
+        item
+        for item in _iter_jsonl(EVENTS_FILE, limit=limit * 4)
+        if _is_publicly_relevant(item)
+    ]
+
+    multisignal_history = read_json(MULTISIGNALS_FILE, {}) or {}
+    multisignal_records = multisignal_history.get("recent", [])
+
+    if isinstance(multisignal_records, list):
+        for record in multisignal_records:
+            if not isinstance(record, dict):
+                continue
+
+            events.append(
+                {
+                    "type": "multisignal",
+                    "public_level": "multisignal",
+                    "summary": "multisignal detected by Cuyum",
+                    "timestamp": record.get("timestamp"),
+                    "cell_id": record.get("cell_id"),
+                    "record_id": record.get("id"),
+                    "direction": record.get("direction"),
+                    "direction_label": record.get("direction_label"),
+                    "warning_seconds": record.get("warning_seconds"),
+                    "sound": False,
+                    "source": "cuyum",
+                }
+            )
+
     if include_audit:
-        audit = [_audit_to_public(x) for x in _iter_jsonl(AUDIT_FILE, limit=limit * 6) if x.get("type") in IMPORTANT_AUDIT_TYPES]
-        events.extend([x for x in audit if x])
+        audit = [
+            _audit_to_public(item)
+            for item in _iter_jsonl(AUDIT_FILE, limit=limit * 6)
+            if item.get("type") in IMPORTANT_AUDIT_TYPES
+        ]
+        events.extend(item for item in audit if item)
 
     def sort_key(item):
         return parse_time(item.get("timestamp")) or datetime.min.replace(tzinfo=timezone.utc)
@@ -667,11 +749,13 @@ def build_public_events(limit=100, include_audit=True):
         "retention_days": cfg["events_days"],
         "max_events_lines": cfg["max_events_lines"],
         "count": len(unique),
-        "description": "Recent significant records. Full live state is in /api/public/live.",
+        "description": "Recent public records generated automatically by Cuyum.",
         "filters": {
-            "sensor_signal": "zone coincidences, shared signals, or intense isolated signals",
-            "system_decision": "non-normal public decisions made by Cuyum",
-            "coverage_noise": "calibration, latency, and normal snapshots are not published here"
+            "isolated_signal": "isolated sensor signals judged by Cuyum",
+            "shared_signal": "shared or coincident signals from multiple sensors",
+            "multisignal": "persistent multisignals detected across Cuyum cells",
+            "sound_alert": "system decisions that activated an audible warning",
+            "excluded": "availability, calibration, latency, normal state, and silent routine decisions"
         },
         "events": unique,
     }
