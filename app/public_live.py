@@ -24,9 +24,9 @@ COMPETENT_AUTHORITY_NAME = (
 COMPETENT_AUTHORITY_RECORDS_URL = (
     os.environ.get(
         "COMPETENT_AUTHORITY_RECORDS_URL",
-        "http://contenidos.inpres.gob.ar/sismologia/xultimos",
+        "https://contenidos.inpres.gob.ar/sismologia/xultimos",
     ).strip()
-    or "http://contenidos.inpres.gob.ar/sismologia/xultimos"
+    or "https://contenidos.inpres.gob.ar/sismologia/xultimos"
 )
 
 

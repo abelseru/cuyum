@@ -355,7 +355,7 @@ function displayCellId(cell, i) {
     const name = String(authority.name || "INPRES").trim() || "INPRES";
     const recordsUrl = String(
       authority.records_url ||
-      "http://contenidos.inpres.gob.ar/sismologia/xultimos"
+      "https://contenidos.inpres.gob.ar/sismologia/xultimos"
     ).trim();
 
     const button = $("competentAuthorityButton");
