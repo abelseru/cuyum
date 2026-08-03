@@ -73,6 +73,11 @@
     }
     .nav a:hover{background:var(--panel2)}
     .nav .primary{background:var(--cyan);color:#00131b;font-weight:800}
+    .nav .primary:hover,
+    .nav .primary:focus{
+      background:var(--cyan);
+      color:#00131b
+    }
 
     .hero{padding-top:64px;border-bottom:1px solid var(--line)}
     .map-stage{
@@ -1328,13 +1333,7 @@
     const historyTitle=document.getElementById('historyTitle');
 
     if(historyTitle){
-      if(recent.length===1){
-        historyTitle.textContent='Último registro';
-      }else if(recent.length>1){
-        historyTitle.textContent=`Últimos ${recent.length} registros`;
-      }else{
-        historyTitle.textContent='Registros recientes';
-      }
+      historyTitle.textContent='Detecciones y propagación';
     }
 
     container.replaceChildren();
@@ -1370,7 +1369,7 @@
 
       const seconds=Number(record.warning_seconds);
       warning.textContent=Number.isFinite(seconds)&&seconds>0
-        ?`${seconds.toLocaleString('es-AR',{
+        ?`Propagación al centro: ${seconds.toLocaleString('es-AR',{
             maximumFractionDigits:1
           })} s`
         :'Sin datos';
