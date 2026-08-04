@@ -350,7 +350,7 @@
     }
     .history-item{
       display:grid;
-      grid-template-columns:minmax(120px,.9fr) minmax(90px,1fr) 72px;
+      grid-template-columns:minmax(120px,.9fr) minmax(90px,1fr) 110px;
       gap:12px;
       align-items:center;
       padding:11px 0;
@@ -370,9 +370,10 @@
     }
     .history-warning{
       color:var(--cyan);
-      font-weight:850;
+      font-size:.8rem;
+      font-weight:400;
       white-space:nowrap;
-      text-align:right
+      text-align:left
     }
     .history-empty{
       margin:0;
@@ -868,7 +869,7 @@
         <h2>Born in Argentina, ready for the world.</h2>
       </div>
       <div class="copy">
-        <p>By replicating it on your own server, Cuyum can adopt a center anywhere in the world.</p>
+        <p>By replicating it on your own server, Cuyum can adopt its center anywhere in the world.</p>
         <p>Purple points represent sensors in the local area. Light-blue points belong to external cells. The lines show how these areas are organized around the center.</p>
         <p>When a potentially relevant signal is detected, the sensors involved are shown in red while the estimated propagation time toward the network center is clearly reported.</p>
         <div class="legend">
@@ -1104,6 +1105,34 @@
     attributionControl:true
   }).setView([-32.6,-69.4],6);
 
+  /*
+   * Durante los primeros cinco segundos, el mapa no captura
+   * arrastres, gestos táctiles, doble clic ni teclado.
+   * Los controles HTML superpuestos, incluido el idioma,
+   * permanecen disponibles desde el comienzo.
+   */
+  const temporaryMapHandlers=[
+    map.dragging,
+    map.touchZoom,
+    map.doubleClickZoom,
+    map.boxZoom,
+    map.keyboard
+  ].filter(Boolean);
+
+  temporaryMapHandlers.forEach(handler=>handler.disable());
+
+  if(map.tap){
+    map.tap.disable();
+  }
+
+  window.setTimeout(()=>{
+    temporaryMapHandlers.forEach(handler=>handler.enable());
+
+    if(map.tap){
+      map.tap.enable();
+    }
+  },5000);
+
   installLanguageSwitcher(map);
 
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
@@ -1224,7 +1253,10 @@
 
   function isEvent(item){
     const state=stateOf(item);
-    return state.includes('signal')||
+
+    return item?.flag===true||
+           item?.strong_flag===true||
+           state.includes('signal')||
            state.includes('watch')||
            state.includes('confirm')||
            state.includes('alert');
@@ -1368,11 +1400,20 @@
       warning.className='history-warning';
 
       const seconds=Number(record.warning_seconds);
-      warning.textContent=Number.isFinite(seconds)&&seconds>0
-        ?`To center: ${seconds.toLocaleString('en-US',{
+
+      if(Number.isFinite(seconds)&&seconds>0){
+        warning.append('To center: ');
+
+        const value=document.createElement('strong');
+        value.textContent=
+          `${seconds.toLocaleString('en-US',{
             maximumFractionDigits:1
-          })} s`
-        :'No data';
+          })} s`;
+
+        warning.appendChild(value);
+      }else{
+        warning.textContent='No data';
+      }
 
       item.append(date,direction,warning);
       container.appendChild(item);

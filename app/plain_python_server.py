@@ -174,13 +174,17 @@ class CuyumHandler(BaseHTTPRequestHandler):
         )
 
     def not_found(self, path):
-        self.send_json(
-            {
-                "error": "not_found",
-                "path": path,
-            },
-            status=404,
-        )
+        page = TEMPLATE_DIR / "404.html"
+
+        if page.exists():
+            self.send_bytes(
+                file_bytes(page),
+                status=404,
+                content_type="text/html; charset=utf-8",
+            )
+            return
+
+        self.send_text("404 NOT FOUND", status=404)
 
     def serve_static(self, path):
         relative = path.removeprefix("/static/")

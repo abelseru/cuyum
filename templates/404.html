@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>404 · Cuyum</title>
+  <link rel="icon" href="/static/cuyum_favicon_64.png">
+  <style>
+    :root{
+      --bg:#05080d;
+      --ink:#edf6fb;
+      --muted:#748490;
+    }
+
+    *{
+      box-sizing:border-box
+    }
+
+    html,
+    body{
+      width:100%;
+      min-height:100%;
+      margin:0
+    }
+
+    body{
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      background:
+        radial-gradient(circle at center,rgba(14,165,233,.07),transparent 38%),
+        var(--bg);
+      color:var(--ink);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,
+        BlinkMacSystemFont,"Segoe UI",sans-serif
+    }
+
+    main{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      padding:32px;
+      text-align:center
+    }
+
+    img{
+      display:block;
+      width:clamp(93px,14.4vw,152px);
+      height:auto;
+      object-fit:contain
+    }
+
+    p{
+      margin:18px 0 0;
+      color:var(--muted);
+      font-size:.68rem;
+      font-weight:700;
+      letter-spacing:.18em;
+      text-transform:uppercase
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="/static/cuyum_logo_app.png" alt="Cuyum">
+    <p>404 - NOT FOUND</p>
+  </main>
+</body>
+</html>
