@@ -1389,8 +1389,23 @@
 
       const direction=document.createElement('span');
       direction.className='history-direction';
+      const directionKey=String(
+        record.direction||''
+      ).trim().toUpperCase();
+
+      const directionNames={
+        NORTH:'North',
+        NORTHEAST:'Northeast',
+        EAST:'East',
+        SOUTHEAST:'Southeast',
+        SOUTH:'South',
+        SOUTHWEST:'Southwest',
+        WEST:'West',
+        NORTHWEST:'Northwest'
+      };
+
       direction.textContent=safeText(
-        record.direction_label||
+        directionNames[directionKey]||
         record.direction||
         record.cell_id,
         'Direction unavailable'

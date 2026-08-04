@@ -861,6 +861,113 @@ function displayCellId(cell, i) {
     }
   }
 
+
+  function renderConfirmedHistory(data) {
+    const body = $('historyRows');
+    const empty = $('historyEmpty');
+    const count = $('historyCount');
+
+    if (!body || !empty || !count) return;
+
+    const history = data && data.confirmed_multisignals;
+    const records = Array.isArray(history && history.recent)
+      ? history.recent
+      : [];
+
+    const cells = Array.isArray(data && data.display_cells)
+      ? data.display_cells
+      : [];
+
+    const cellById = new Map(
+      cells.map(cell => [String(cell.cell_id || ''), cell])
+    );
+
+    const total = Number(history && history.total || records.length);
+
+    count.textContent =
+      `${total} ${total === 1 ? 'registro' : 'registros'}`;
+
+    body.replaceChildren();
+
+    if (!records.length) {
+      empty.classList.add('visible');
+      return;
+    }
+
+    empty.classList.remove('visible');
+
+    records.forEach(item => {
+      const row = document.createElement('tr');
+      const cellName =
+        item.cell_id ||
+        '—';
+
+      const date = new Date(item.timestamp);
+      const dateText = Number.isNaN(date.getTime())
+        ? '—'
+        : new Intl.DateTimeFormat('es-AR', {
+            dateStyle: 'medium',
+            timeStyle: 'medium'
+          }).format(date);
+
+      const directionKey = String(
+        item.direction || ''
+      ).trim().toUpperCase();
+
+      const directionNames = {
+        NORTH: 'Norte',
+        NORTHEAST: 'Noreste',
+        EAST: 'Este',
+        SOUTHEAST: 'Sureste',
+        SOUTH: 'Sur',
+        SOUTHWEST: 'Suroeste',
+        WEST: 'Oeste',
+        NORTHWEST: 'Noroeste'
+      };
+
+      const region =
+        directionNames[directionKey] ||
+        item.direction_label ||
+        item.direction ||
+        '—';
+
+      const seconds = Number(item.warning_seconds);
+      const warning = Number.isFinite(seconds)
+        ? `${seconds.toLocaleString('es-AR', {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1
+          })} s`
+        : '—';
+
+      row.innerHTML = `
+        <td class="history-time" data-label="Fecha y hora"></td>
+        <td class="history-region" data-label="Región"></td>
+        <td data-label="Celda">
+          <span class="history-cell">
+            <strong></strong>
+            <small></small>
+          </span>
+        </td>
+        <td class="history-warning" data-label="Propagación">
+          <span class="history-warning-main">
+            Al centro: <strong></strong>
+          </span>
+          ${item.warning_seconds_reconstructed
+            ? '<span class="history-reconstructed">valor reconstruido</span>'
+            : ''}
+        </td>
+      `;
+
+      row.children[0].textContent = dateText;
+      row.children[1].textContent = region;
+      row.querySelector('.history-cell strong').textContent = cellName;
+      row.querySelector('.history-cell small').textContent = '';
+      row.querySelector('.history-warning strong').textContent = warning;
+
+      body.appendChild(row);
+    });
+  }
+
   async function tick() {
     try {
       const res = await fetch(API, { cache: 'no-store' });
@@ -870,6 +977,7 @@ function displayCellId(cell, i) {
       setStateCard(data);
       renderCells(data.display_cells || []);
       renderMap(data);
+      renderConfirmedHistory(data);
       maybeChirpForIndividualSensor(data);
       maybeBeep(data);
       const next = (data.poll && data.poll.next_ms) || ((data.alert && data.alert.active) ? ALERT_MS : NORMAL_MS);

@@ -1655,3 +1655,581 @@ button.audio-button.audio-enabled.audio-test::after {
   border-color: transparent !important;
   box-shadow: none !important;
 }
+
+
+/* APP HISTORY AND SCREEN SNAP V22 */
+
+html {
+  scroll-behavior: smooth;
+  scroll-snap-type: y proximity;
+}
+
+body {
+  min-height: 100dvh;
+}
+
+.cuyum-live {
+  display: block;
+  min-height: 100dvh;
+  padding: 0;
+}
+
+.dashboard-screen {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 330px minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+}
+
+.dashboard-screen > .readout,
+.dashboard-screen > .map-panel {
+  min-width: 0;
+}
+
+.history-panel {
+  min-height: 100dvh;
+  padding: 28px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(25,189,242,.10), transparent 340px),
+    radial-gradient(circle at 0 100%, rgba(139,92,246,.10), transparent 360px),
+    var(--bg);
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+}
+
+.history-head {
+  width: min(1180px, 100%);
+  margin: 0 auto 18px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.history-kicker {
+  margin: 0 0 6px;
+  color: var(--cyan);
+  font-size: .7rem;
+  font-weight: 820;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.history-head h2 {
+  margin: 0;
+  font-size: clamp(1.75rem, 3vw, 2.8rem);
+  line-height: 1;
+  letter-spacing: -.045em;
+}
+
+.history-head p:not(.history-kicker) {
+  margin: 9px 0 0;
+  color: var(--muted);
+}
+
+.history-count {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--soft);
+  background: rgba(16,26,36,.9);
+  font-size: .82rem;
+  font-weight: 760;
+}
+
+.history-table-wrap {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(11,20,29,.97);
+  box-shadow: 0 20px 46px rgba(0,0,0,.30);
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.history-table th,
+.history-table td {
+  padding: 15px 18px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.history-table th {
+  color: var(--muted);
+  background: rgba(255,255,255,.025);
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.history-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.history-table tbody tr:hover {
+  background: rgba(25,189,242,.045);
+}
+
+.history-time {
+  color: var(--soft);
+  white-space: nowrap;
+}
+
+.history-region {
+  font-weight: 760;
+  text-transform: capitalize;
+}
+
+.history-cell {
+  display: grid;
+  gap: 3px;
+}
+
+.history-cell strong {
+  font-size: .95rem;
+}
+
+.history-cell small {
+  color: var(--muted);
+  font-size: .74rem;
+}
+
+.history-warning {
+  color: var(--cyan);
+  white-space: nowrap;
+}
+
+.history-warning strong {
+  font-size: 1.02rem;
+}
+
+.history-reconstructed {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: .68rem;
+}
+
+.history-empty {
+  display: none;
+  min-height: 220px;
+  place-items: center;
+  padding: 32px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.history-empty.visible {
+  display: grid;
+}
+
+@media (max-width: 900px) {
+  .dashboard-screen {
+    min-height: auto;
+    display: block;
+    padding: 0;
+  }
+
+  .dashboard-screen > .readout,
+  .dashboard-screen > .map-panel,
+  .history-panel {
+    min-height: 100dvh;
+    scroll-snap-align: start;
+    scroll-snap-stop: normal;
+  }
+
+  .dashboard-screen > .readout {
+    margin: 10px;
+    padding: 14px;
+    overflow: visible;
+  }
+
+  .dashboard-screen > .map-panel {
+    height: calc(100dvh - 20px);
+    min-height: calc(100dvh - 20px);
+    margin: 10px;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    max-height: none;
+  }
+
+  .dashboard-screen #leafletMap {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .history-panel {
+    padding: 20px 10px;
+  }
+}
+
+@media (max-width: 680px) {
+  html {
+    scroll-snap-type: y proximity;
+  }
+
+  .history-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .history-table-wrap {
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .history-table,
+  .history-table tbody,
+  .history-table tr,
+  .history-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .history-table thead {
+    display: none;
+  }
+
+  .history-table tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  .history-table tr {
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: rgba(11,20,29,.97);
+    box-shadow: 0 12px 28px rgba(0,0,0,.22);
+  }
+
+  .history-table td {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+  }
+
+  .history-table td:last-child {
+    border-bottom: 0;
+  }
+
+  .history-table td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+
+  .history-time {
+    white-space: normal;
+  }
+}
+
+/* =========================================================
+   /app V24
+   Flujo normal, sin sticky/snap y tabla tipográficamente
+   integrada con el dashboard original
+   ========================================================= */
+
+/* Quitar por completo el desplazamiento por pantallas */
+html {
+  scroll-snap-type: none !important;
+  scroll-behavior: auto !important;
+}
+
+.dashboard-screen,
+.history-panel,
+.dashboard-screen > .readout,
+.dashboard-screen > .map-panel {
+  scroll-snap-align: none !important;
+  scroll-snap-stop: normal !important;
+  position: static !important;
+  top: auto !important;
+}
+
+/* El dashboard de escritorio conserva su composición original */
+.cuyum-live {
+  display: block !important;
+  min-height: 100svh !important;
+  padding: 0 !important;
+}
+
+.dashboard-screen {
+  display: grid !important;
+  grid-template-columns: 330px minmax(0, 1fr) !important;
+  gap: 14px !important;
+  min-height: 100svh !important;
+  padding: 14px !important;
+}
+
+/* Historial: bloque normal debajo del dashboard */
+.history-panel {
+  min-height: 0 !important;
+  height: auto !important;
+  padding: 28px !important;
+}
+
+/* Mismo tamaño visual que "Mapa de cobertura" */
+.history-head h2 {
+  margin: 3px 0 0 !important;
+  font-size: clamp(1.35rem, 2vw, 1.9rem) !important;
+  line-height: 1 !important;
+  letter-spacing: -.04em !important;
+  font-weight: 820 !important;
+}
+
+.history-head p:not(.history-kicker) {
+  margin-top: 6px !important;
+  font-size: .9rem !important;
+  line-height: 1.35 !important;
+}
+
+.history-kicker {
+  font-size: .68rem !important;
+}
+
+/* Tabla coherente con el resto de /app */
+.history-table th {
+  padding: 12px 16px !important;
+  font-size: .68rem !important;
+  line-height: 1.2 !important;
+  font-weight: 760 !important;
+}
+
+.history-table td {
+  padding: 13px 16px !important;
+  font-size: .86rem !important;
+  line-height: 1.3 !important;
+  font-weight: 400 !important;
+}
+
+.history-time {
+  color: var(--soft) !important;
+  font-size: .86rem !important;
+  font-weight: 400 !important;
+}
+
+.history-region {
+  font-size: .86rem !important;
+  font-weight: 700 !important;
+}
+
+.history-cell {
+  display: block !important;
+}
+
+.history-cell strong {
+  font-size: .86rem !important;
+  line-height: 1.3 !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+}
+
+.history-cell small:empty {
+  display: none !important;
+}
+
+/* "Al centro: 65,9 s" siempre unido */
+.history-warning {
+  display: block !important;
+  color: var(--cyan) !important;
+  font-size: .86rem !important;
+  line-height: 1.3 !important;
+  font-weight: 400 !important;
+  white-space: nowrap !important;
+}
+
+.history-warning strong {
+  display: inline !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  font-weight: 700 !important;
+}
+
+.history-reconstructed {
+  display: block !important;
+  margin-top: 3px !important;
+  color: var(--muted) !important;
+  font-size: .68rem !important;
+  line-height: 1.25 !important;
+  white-space: normal !important;
+}
+
+
+/* ---------------------------------------------------------
+   TABLET Y CELULAR: flujo normal, no pantallas obligatorias
+   --------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .dashboard-screen {
+    display: block !important;
+    min-height: 0 !important;
+    padding: 10px !important;
+  }
+
+  .dashboard-screen > .readout {
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 0 10px !important;
+    overflow: visible !important;
+  }
+
+  .dashboard-screen > .map-panel {
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    max-height: none !important;
+    grid-template-rows: auto 56svh auto !important;
+    overflow: hidden !important;
+  }
+
+  .dashboard-screen #leafletMap {
+    height: 100% !important;
+    min-height: 360px !important;
+  }
+
+  .history-panel {
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 20px 10px 28px !important;
+  }
+
+  .history-head h2 {
+    font-size: 25px !important;
+  }
+}
+
+
+@media (max-width: 680px) {
+  .history-head {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  .history-head h2 {
+    font-size: 20px !important;
+  }
+
+  .history-head p:not(.history-kicker) {
+    font-size: .84rem !important;
+  }
+
+  .history-count {
+    padding: 6px 10px !important;
+    font-size: .72rem !important;
+  }
+
+  /* Tarjetas móviles compactas */
+  .history-table tbody {
+    gap: 8px !important;
+  }
+
+  .history-table tr {
+    padding: 10px 12px !important;
+    border-radius: 14px !important;
+  }
+
+  .history-table td {
+    display: grid !important;
+    grid-template-columns: 82px minmax(0, 1fr) !important;
+    gap: 8px !important;
+    align-items: baseline !important;
+    padding: 7px 0 !important;
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+  }
+
+  .history-table td::before {
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+    letter-spacing: .05em !important;
+    font-weight: 760 !important;
+  }
+
+  .history-time,
+  .history-region,
+  .history-cell strong,
+  .history-warning {
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+  }
+
+  .history-region {
+    font-weight: 700 !important;
+  }
+
+  .history-warning {
+    white-space: nowrap !important;
+  }
+
+  .history-reconstructed {
+    margin-top: 2px !important;
+    font-size: 10px !important;
+  }
+}
+
+
+@media (max-width: 560px) {
+  .dashboard-screen > .map-panel {
+    grid-template-rows: auto 52svh auto !important;
+  }
+
+  .dashboard-screen #leafletMap {
+    min-height: 340px !important;
+  }
+}
+
+
+/* /app: mantener etiqueta y valor de propagación unidos */
+.history-warning-main {
+  display: inline-flex !important;
+  align-items: baseline !important;
+  gap: 4px !important;
+  white-space: nowrap !important;
+}
+
+.history-warning-main strong {
+  display: inline !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  font-weight: 700 !important;
+}
+
+@media (max-width: 680px) {
+  .history-warning {
+    white-space: normal !important;
+  }
+
+  .history-warning-main,
+  .history-reconstructed {
+    grid-column: 2 !important;
+  }
+
+  .history-warning-main {
+    grid-row: 1 !important;
+  }
+
+  .history-reconstructed {
+    grid-row: 2 !important;
+    margin-top: 2px !important;
+  }
+}

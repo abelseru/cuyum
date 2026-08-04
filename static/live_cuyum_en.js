@@ -918,6 +918,111 @@ function displayCellId(cell, i) {
     }
   }
 
+
+  function renderConfirmedHistory(data) {
+    const body = $('historyRows');
+    const empty = $('historyEmpty');
+    const count = $('historyCount');
+
+    if (!body || !empty || !count) return;
+
+    const history = data && data.confirmed_multisignals;
+    const records = Array.isArray(history && history.recent)
+      ? history.recent
+      : [];
+
+    const cells = Array.isArray(data && data.display_cells)
+      ? data.display_cells
+      : [];
+
+    const cellById = new Map(
+      cells.map(cell => [String(cell.cell_id || ''), cell])
+    );
+
+    count.textContent =
+      `${Number(history && history.total || records.length)} ` +
+      `${Number(history && history.total || records.length) === 1 ? 'record' : 'records'}`;
+
+    body.replaceChildren();
+
+    if (!records.length) {
+      empty.classList.add('visible');
+      return;
+    }
+
+    empty.classList.remove('visible');
+
+    records.forEach(item => {
+      const row = document.createElement('tr');
+      const cellName =
+        item.cell_id ||
+        '—';
+
+      const date = new Date(item.timestamp);
+      const dateText = Number.isNaN(date.getTime())
+        ? '—'
+        : new Intl.DateTimeFormat('en-US', {
+            dateStyle: 'medium',
+            timeStyle: 'medium'
+          }).format(date);
+
+      const directionKey = String(
+        item.direction || ''
+      ).trim().toUpperCase();
+
+      const directionNames = {
+        NORTH: 'North',
+        NORTHEAST: 'Northeast',
+        EAST: 'East',
+        SOUTHEAST: 'Southeast',
+        SOUTH: 'South',
+        SOUTHWEST: 'Southwest',
+        WEST: 'West',
+        NORTHWEST: 'Northwest'
+      };
+
+      const region =
+        directionNames[directionKey] ||
+        item.direction ||
+        '—';
+
+      const seconds = Number(item.warning_seconds);
+      const warning = Number.isFinite(seconds)
+        ? `${seconds.toLocaleString('en-US', {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1
+          })} s`
+        : '—';
+
+      row.innerHTML = `
+        <td class="history-time" data-label="Date and time"></td>
+        <td class="history-region" data-label="Region"></td>
+        <td data-label="Cell">
+          <span class="history-cell">
+            <strong></strong>
+            <small></small>
+          </span>
+        </td>
+        <td class="history-warning" data-label="Propagation">
+          <span class="history-warning-main">
+            To center: <strong></strong>
+          </span>
+          ${item.warning_seconds_reconstructed
+            ? '<span class="history-reconstructed">reconstructed value</span>'
+            : ''}
+        </td>
+      `;
+
+      row.children[0].textContent = dateText;
+      row.children[1].textContent = region;
+      row.querySelector('.history-cell strong').textContent = cellName;
+      row.querySelector('.history-cell small').textContent = '';
+      row.querySelector('.history-warning strong').textContent = warning;
+
+      body.appendChild(row);
+    });
+  }
+
   async function tick() {
     try {
       const res = await fetch(API, { cache: 'no-store' });
@@ -927,6 +1032,7 @@ function displayCellId(cell, i) {
       setStateCard(data);
       renderCells(data.display_cells || []);
       renderMap(data);
+      renderConfirmedHistory(data);
       maybeChirpForIndividualSensor(data);
       maybeBeep(data);
       const next = (data.poll && data.poll.next_ms) || ((data.alert && data.alert.active) ? ALERT_MS : NORMAL_MS);

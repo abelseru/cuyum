@@ -1389,7 +1389,23 @@
 
       const direction=document.createElement('span');
       direction.className='history-direction';
+      const directionKey=String(
+        record.direction||''
+      ).trim().toUpperCase();
+
+      const directionNames={
+        NORTH:'Norte',
+        NORTHEAST:'Noreste',
+        EAST:'Este',
+        SOUTHEAST:'Sureste',
+        SOUTH:'Sur',
+        SOUTHWEST:'Suroeste',
+        WEST:'Oeste',
+        NORTHWEST:'Noroeste'
+      };
+
       direction.textContent=safeText(
+        directionNames[directionKey]||
         record.direction_label||
         record.direction||
         record.cell_id,
